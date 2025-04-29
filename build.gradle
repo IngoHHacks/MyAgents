@@ -6,6 +6,13 @@ plugins {
 group = 'net.ingoh'
 version = '1.0'
 
+sourceCompatibility = '17'
+targetCompatibility = '17'
+
+def antlrVersion = '4.13.2'
+def jacksonVersion = '2.18.0'
+def javapoetVersion = '1.13.0'
+
 repositories {
     mavenCentral()
 }
@@ -21,8 +28,14 @@ configurations {
 }
 
 dependencies {
-    antlr 'org.antlr:antlr4:4.13.2'
-    implementation 'org.antlr:antlr4-runtime:4.13.2'
+    antlr "org.antlr:antlr4:$antlrVersion"
+    implementation "org.antlr:antlr4-runtime:$antlrVersion"
+
+    implementation "com.fasterxml.jackson.core:jackson-core:$jacksonVersion"
+    implementation "com.fasterxml.jackson.core:jackson-databind:$jacksonVersion"
+    implementation "com.fasterxml.jackson.core:jackson-annotations:$jacksonVersion"
+
+    implementation "com.squareup:javapoet:$javapoetVersion"
 }
 
 generateGrammarSource {
@@ -38,7 +51,8 @@ sourceSets {
 }
 
 generateGrammarSource {
-    arguments += ['-visitor']
+    arguments += ['-visitor', '-package', 'net.ingoh.myagents.lang.internal']
+    outputDirectory = file("build/generated-src/antlr/main/net/ingoh/myagents/lang/internal")
 }
 
 compileJava.dependsOn generateGrammarSource
