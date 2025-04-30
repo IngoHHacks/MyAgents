@@ -1,58 +1,48 @@
 plugins {
-    id 'java'
-    id 'antlr'
+    id 'base'
 }
 
-group = 'net.ingoh'
-version = '1.0'
-
-sourceCompatibility = '17'
-targetCompatibility = '17'
-
-def antlrVersion = '4.13.2'
-def jacksonVersion = '2.18.0'
-def javapoetVersion = '1.13.0'
-
-repositories {
-    mavenCentral()
-}
-
-/**
- * Without the next section Gradle will add a 'compile' dependency on Antlr3:
- * https://github.com/gradle/gradle/issues/820
- */
-configurations {
-    compile {
-        extendsFrom = extendsFrom.findAll { it != configurations.antlr }
+allprojects {
+    repositories {
+        mavenCentral()
     }
 }
 
-dependencies {
-    antlr "org.antlr:antlr4:$antlrVersion"
-    implementation "org.antlr:antlr4-runtime:$antlrVersion"
+subprojects {
+    apply plugin: 'java'
+    group = 'net.ingoh.myagents'
+    version = "$version"
 
-    implementation "com.fasterxml.jackson.core:jackson-core:$jacksonVersion"
-    implementation "com.fasterxml.jackson.core:jackson-databind:$jacksonVersion"
-    implementation "com.fasterxml.jackson.core:jackson-annotations:$jacksonVersion"
-
-    implementation "com.squareup:javapoet:$javapoetVersion"
-}
-
-generateGrammarSource {
-    maxHeapSize = '1G'
-}
-
-sourceSets {
-    main {
-        java {
-            srcDirs += "build/generated-src/antlr/main"
-        }
+    java {
+        sourceCompatibility = JavaVersion.VERSION_17
+        targetCompatibility = JavaVersion.VERSION_17
     }
 }
 
-generateGrammarSource {
-    arguments += ['-visitor', '-package', 'net.ingoh.myagents.lang.internal']
-    outputDirectory = file("build/generated-src/antlr/main/net/ingoh/myagents/lang/internal")
+tasks.register("cleanAll") {
+    group = 'build'
+    description = 'Cleans all projects'
+    subprojects.forEach { project ->
+        dependsOn(project.tasks.named("clean"))
+    }
 }
 
-compileJava.dependsOn generateGrammarSource
+tasks.register("buildAll") {
+    group = 'build'
+    description = 'Builds all projects'
+    subprojects.forEach { project ->
+        dependsOn(project.tasks.named("build"))
+    }
+}
+
+tasks.register("generateGrammarSource") {
+    group = 'build'
+    description = 'Generates the grammar files'
+    dependsOn(':myagents-core:generateGrammarSource')
+}
+
+tasks.register("jarServer") {
+    dependsOn ':lsp-server:shadowJar'
+    group = 'build'
+    description = 'Builds the server jar'
+}

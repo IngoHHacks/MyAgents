@@ -3,3 +3,6 @@ gradle
 build
 .idea
 out
+.vscode
+!lsp-client/.vscode
+lsp-server.jar

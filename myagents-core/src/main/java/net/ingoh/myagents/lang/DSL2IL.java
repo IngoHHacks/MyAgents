@@ -1,13 +1,12 @@
 package net.ingoh.myagents.lang;
 
-import net.ingoh.myagents.lang.il.EnvironmentIL;
-import net.ingoh.myagents.lang.internal.*;
-import org.antlr.v4.runtime.*;
+import net.ingoh.myagents.lang.il.ILNode;
 
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.Comparator;
 import java.util.UUID;
 
 public class DSL2IL {
@@ -17,13 +16,7 @@ public class DSL2IL {
         assert targetClass != null : "Target class cannot be null";
         Path outDir = Paths.get("./out/il/");
         Path outFile = outDir.resolve(UUID.randomUUID() + ".il");
-        CharStream input = CharStreams.fromString(content);
-        EnvironmentLexer lexer = new EnvironmentLexer(input);
-        CommonTokenStream tokens = new CommonTokenStream(lexer);
-        EnvironmentParser parser = new EnvironmentParser(tokens);
-
-        EnvironmentILBuilder visitor = new EnvironmentILBuilder();
-        EnvironmentIL result = visitor.visitProgram(parser.program());
+        ILNode result = DSLParser.parse(content, targetClass);
         try {
             ILSerializer.saveToFile(outFile, result);
         } catch (Exception e) {
@@ -45,5 +38,24 @@ public class DSL2IL {
         }
         assert content != null && !content.isEmpty() : "Invalid content";
         return string2Il(content, targetClass);
+    }
+
+    public static void clean() {
+        Path outDir = Paths.get("./out/il/");
+        try {
+            if (Files.exists(outDir)) {
+                Files.walk(outDir)
+                        .sorted(Comparator.reverseOrder())
+                        .forEach(path -> {
+                            try {
+                                Files.delete(path);
+                            } catch (IOException e) {
+                                throw new RuntimeException("Error deleting file: " + e.getMessage(), e);
+                            }
+                        });
+            }
+        } catch (IOException e) {
+            throw new RuntimeException("Error cleaning directory: " + e.getMessage(), e);
+        }
     }
 }

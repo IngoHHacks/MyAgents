@@ -1,0 +1,57 @@
+{
+	"name": "myagents-lsp",
+	"description": "Language server for the MyAgents DSL",
+	"author": "Ingo Heijnens",
+	"license": "MIT",
+	"version": "1.0.0",
+	"repository": {
+		"type": "git",
+		"url": "https://github.com/IngoHHacks/MyAgents"
+	},
+	"publisher": "Ingo Heijnens",
+	"categories": [],
+	"keywords": [
+		"language",
+		"server",
+		"myagents"
+	],
+	"engines": {
+		"vscode": "^1.75.0"
+	},
+	"main": "./out/extension",
+	"contributes": {
+		"languages": [
+			{
+				"id": "myagents",
+				"extensions": [
+					".yage",
+					".yenv"
+				],
+				"configuration": "./language-configuration.json"
+			}
+		]
+	},
+	"scripts": {
+		"vscode:prepublish": "npm run compile",
+		"compile": "tsc -b",
+		"watch": "tsc -b -w",
+		"lint": "eslint"
+	},
+	"dependencies": {
+		"glob": "^11.0.0",
+		"myagents-lsp": "file:",
+		"vscode-languageclient": "^9.0.1"
+	},
+	"devDependencies": {
+		"@eslint/js": "^9.13.0",
+		"@stylistic/eslint-plugin": "^2.9.0",
+		"@types/mocha": "^10.0.6",
+		"@types/node": "^20",
+		"@types/vscode": "^1.75.1",
+		"@vscode/test-electron": "^2.3.9",
+		"eslint": "^9.13.0",
+		"mocha": "^10.3.0",
+		"typescript": "^5.8.2",
+		"typescript-eslint": "^8.26.0"
+	}
+}

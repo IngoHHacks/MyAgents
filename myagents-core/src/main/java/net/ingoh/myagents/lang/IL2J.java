@@ -7,7 +7,6 @@ import net.ingoh.myagents.lang.il.ILNode;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.UUID;
 
 public class IL2J {
 

@@ -17,5 +17,6 @@ tick dt {
 """;
         var path = DSL2IL.string2Il(example, Environment.class);
         IL2J.file2J(path);
+        DSL2IL.clean();
     }
 }

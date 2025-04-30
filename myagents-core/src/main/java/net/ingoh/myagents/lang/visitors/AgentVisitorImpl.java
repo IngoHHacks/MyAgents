@@ -1,33 +1,31 @@
-package net.ingoh.myagents.lang;
+package net.ingoh.myagents.lang.visitors;
 
 import net.ingoh.myagents.lang.il.*;
-import net.ingoh.myagents.lang.internal.*;
+import net.ingoh.myagents.lang.internal.AgentBaseVisitor;
+import net.ingoh.myagents.lang.internal.AgentParser;
 import org.antlr.v4.runtime.tree.ParseTree;
 
 import java.util.Dictionary;
 import java.util.Hashtable;
 import java.util.List;
 
-public class EnvironmentILBuilder extends EnvironmentBaseVisitor<Object> {
+public class AgentVisitorImpl extends AgentBaseVisitor<Object> implements HasRootVisitor<EnvironmentIL, AgentParser.ProgramContext> {
 
     private Dictionary<String, VariableIL> variables = new Hashtable<>();
 
     @Override
-    public EnvironmentIL visitProgram(EnvironmentParser.ProgramContext ctx) {
+    public EnvironmentIL visitProgram(AgentParser.ProgramContext ctx) {
         EnvironmentIL il = new EnvironmentIL();
         il.name = ctx.nameDecl().get(0).ID().getText();
-        il.tickRate = Float.parseFloat(ctx.tickRateDecl().get(0).number().getText());
-        il.agents = ctx.agentsDecl().get(0).ID().stream()
-                .map(ParseTree::getText).toList();
-        il.tickMethod = visitTickMethodDecl(ctx.tickMethodDecl());
+        il.tickMethod = visitTickMethodDecl(ctx.tickMethodDecl().get(0));
         return il;
     }
 
     @Override
-    public MethodIL visitTickMethodDecl(EnvironmentParser.TickMethodDeclContext ctx) {
+    public MethodIL visitTickMethodDecl(AgentParser.TickMethodDeclContext ctx) {
         MethodIL methodIL = new MethodIL();
         methodIL.name = "tick";
-        methodIL.returnType = "void";
+        methodIL.returnType = "boolean";
         methodIL.parameters = List.of(ParameterIL.builder()
                 .name(ctx.ID().getText())
                 .type("float")
@@ -37,14 +35,14 @@ public class EnvironmentILBuilder extends EnvironmentBaseVisitor<Object> {
     }
 
     @Override
-    public List<StatementIL> visitBlock(EnvironmentParser.BlockContext ctx) {
+    public List<StatementIL> visitBlock(AgentParser.BlockContext ctx) {
         return ctx.statement().stream()
                 .map(this::visitStatement)
                 .toList();
     }
 
     @Override
-    public StatementIL visitStatement(EnvironmentParser.StatementContext ctx) {
+    public StatementIL visitStatement(AgentParser.StatementContext ctx) {
         if (ctx.printStatement() != null) {
             PrintStatementIL printStatementIL = new PrintStatementIL();
             printStatementIL.expr = visitExpression(ctx.printStatement().expression());
@@ -54,7 +52,7 @@ public class EnvironmentILBuilder extends EnvironmentBaseVisitor<Object> {
     }
 
     @Override
-    public ExpressionIL visitExpression(EnvironmentParser.ExpressionContext ctx) {
+    public ExpressionIL visitExpression(AgentParser.ExpressionContext ctx) {
         if (ctx.STRING() != null) {
             return new StringLiteralIL(ctx.STRING().getText());
         }
@@ -67,5 +65,10 @@ public class EnvironmentILBuilder extends EnvironmentBaseVisitor<Object> {
             return variable;
         }
         throw new UnsupportedOperationException("Unsupported expression type: " + ctx.getClass().getSimpleName());
+    }
+
+    @Override
+    public EnvironmentIL root(AgentParser.ProgramContext ctx) {
+        return visitProgram(ctx);
     }
 }
