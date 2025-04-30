@@ -6,6 +6,5 @@ public class Main {
     public static void main(String[] args) {
         MyAgentsLSP server = new MyAgentsLSP();
         LSPLauncher.createServerLauncher(server, System.in, System.out).startListening();
-        System.err.println("Server started");
     }
 }

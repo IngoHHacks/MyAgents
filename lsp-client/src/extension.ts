@@ -27,9 +27,6 @@ export function activate(context: ExtensionContext) {
 			'-jar', serverModule
 		];
 		const process = cp.spawn('java', args, { stdio: 'pipe' });
-		process.on('stderr', (data) => {
-			console.error(`Server stderr: ${data}`);
-		});
 		return Promise.resolve({
 			reader: process.stdout,
 			writer: process.stdin

@@ -27,6 +27,10 @@
 					".yage",
 					".yenv"
 				],
+				"aliases": [
+					"MyAgents",
+					"my-agents"
+				],
 				"configuration": "./language-configuration.json"
 			}
 		]
