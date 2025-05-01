@@ -42,10 +42,9 @@ public class DSL2IL {
 
     public static void clean() {
         Path outDir = Paths.get("./out/il/");
-        try {
-            if (Files.exists(outDir)) {
-                Files.walk(outDir)
-                        .sorted(Comparator.reverseOrder())
+        if (Files.exists(outDir)) {
+            try (var paths = Files.walk(outDir)) {
+                paths.sorted(Comparator.reverseOrder())
                         .forEach(path -> {
                             try {
                                 Files.delete(path);
@@ -53,9 +52,9 @@ public class DSL2IL {
                                 throw new RuntimeException("Error deleting file: " + e.getMessage(), e);
                             }
                         });
+            } catch (IOException e) {
+                throw new RuntimeException("Error walking through directory: " + e.getMessage(), e);
             }
-        } catch (IOException e) {
-            throw new RuntimeException("Error cleaning directory: " + e.getMessage(), e);
         }
     }
 }

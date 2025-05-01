@@ -1,5 +1,7 @@
 package net.ingoh.myagents.lsp.server;
 
+import net.ingoh.myagents.lsp.server.documents.DocumentTrackData;
+import net.ingoh.myagents.lsp.server.tokens.SemanticToken;
 import org.eclipse.lsp4j.*;
 import org.eclipse.lsp4j.services.LanguageClient;
 import org.eclipse.lsp4j.services.LanguageClientAware;
@@ -11,22 +13,35 @@ import java.util.concurrent.CompletableFuture;
 
 public class MyAgentsLSP implements LanguageServer, LanguageClientAware {
 
-    private MyAgentsTextDocumentService textDocumentService;
-    private MyAgentsWorkspaceService workspaceService;
+    private final MyAgentsTextDocumentService textDocumentService;
+    private final MyAgentsWorkspaceService workspaceService;
+    private final DocumentTrackData documentTrackData;
     private LanguageClient client;
 
     public MyAgentsLSP() {
         this.textDocumentService = new MyAgentsTextDocumentService(this);
         this.workspaceService = new MyAgentsWorkspaceService();
+        this.documentTrackData = new DocumentTrackData();
     }
 
     @Override
     public CompletableFuture<InitializeResult> initialize(InitializeParams params) {
         ServerCapabilities capabilities = new ServerCapabilities();
+
         capabilities.setTextDocumentSync(TextDocumentSyncKind.Full);
         capabilities.setCompletionProvider(new CompletionOptions(true, List.of(".")));
-        InitializeResult result = new InitializeResult(capabilities);
-        return CompletableFuture.completedFuture(result);
+
+        SemanticTokensLegend legend = new SemanticTokensLegend(
+                SemanticToken.types(),
+                SemanticToken.modifiers()
+        );
+
+        capabilities.setSemanticTokensProvider(new SemanticTokensWithRegistrationOptions(
+                legend,
+                true
+        ));
+
+        return CompletableFuture.completedFuture(new InitializeResult(capabilities));
     }
 
     @Override
@@ -56,5 +71,9 @@ public class MyAgentsLSP implements LanguageServer, LanguageClientAware {
     @Override
     public MyAgentsWorkspaceService getWorkspaceService() {
         return workspaceService;
+    }
+
+    public DocumentTrackData getDocumentTrackData() {
+        return documentTrackData;
     }
 }
