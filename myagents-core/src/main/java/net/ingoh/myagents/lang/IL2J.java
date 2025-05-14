@@ -1,8 +1,6 @@
 package net.ingoh.myagents.lang;
 
 import com.fasterxml.jackson.databind.JsonNode;
-import net.ingoh.myagents.lang.il.EnvironmentIL;
-import net.ingoh.myagents.lang.il.ILNode;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -10,7 +8,7 @@ import java.nio.file.Path;
 
 public class IL2J {
 
-    public static <T extends ILNode> Path json2J(JsonNode content, Class<T> targetClass) {
+    public static <T> Path json2J(JsonNode content, Class<T> targetClass) {
         assert content != null : "Content cannot be null";
         assert targetClass != null : "Target class cannot be null";
         Path outDir = Path.of("./out/java/");
@@ -25,7 +23,7 @@ public class IL2J {
         return outFile;
     }
 
-    public static <T extends ILNode> Path string2J(String content) {
+    public static <T> Path string2J(String content) {
         assert content != null : "Content cannot be null";
         try {
             JsonNode jsonNode = ILSerializer.deserialize(content);

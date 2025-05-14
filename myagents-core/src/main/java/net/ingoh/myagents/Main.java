@@ -15,7 +15,7 @@ tick dt {
     print("Hello, world");
 }
 """;
-        var path = DSL2IL.string2Il(example, Environment.class);
+        var path = DSL2IL.string2Il(example);
         IL2J.file2J(path);
         DSL2IL.clean();
     }

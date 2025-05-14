@@ -11,12 +11,11 @@ import java.util.UUID;
 
 public class DSL2IL {
 
-    public static Path string2Il(String content, Class<?> targetClass) {
+    public static Path string2Il(String content) {
         assert content != null : "Content cannot be null";
-        assert targetClass != null : "Target class cannot be null";
         Path outDir = Paths.get("./out/il/");
         Path outFile = outDir.resolve(UUID.randomUUID() + ".il");
-        ILNode result = DSLParser.parse(content, targetClass);
+        ILNode result = DSLParser.parse(content);
         try {
             ILSerializer.saveToFile(outFile, result);
         } catch (Exception e) {
@@ -37,7 +36,7 @@ public class DSL2IL {
             throw new RuntimeException("Error reading file: " + e.getMessage(), e);
         }
         assert content != null && !content.isEmpty() : "Invalid content";
-        return string2Il(content, targetClass);
+        return string2Il(content);
     }
 
     public static void clean() {

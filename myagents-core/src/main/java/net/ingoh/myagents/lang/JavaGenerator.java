@@ -4,7 +4,6 @@ import com.squareup.javapoet.JavaFile;
 import com.squareup.javapoet.MethodSpec;
 import com.squareup.javapoet.TypeSpec;
 import net.ingoh.myagents.core.EnvironmentImpl;
-import net.ingoh.myagents.lang.il.*;
 
 import javax.lang.model.element.Modifier;
 import java.io.IOException;
@@ -12,7 +11,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 
 public class JavaGenerator {
-    public static <T extends ILNode> Path generateJavaCode(T il, Path outPath) {
+    public static <T> Path generateJavaCode(T il, Path outPath) {
         assert il != null : "ILNode cannot be null";
         assert outPath != null : "Output path cannot be null";
         String code;

@@ -2,14 +2,10 @@ package net.ingoh.myagents.core;
 
 import net.ingoh.myagents.lang.internal.AgentBaseVisitor;
 import net.ingoh.myagents.lang.lexers.AgentLexerImpl;
-import net.ingoh.myagents.lang.lexers.EnvironmentLexerImpl;
 import net.ingoh.myagents.lang.parsers.AgentParserImpl;
-import net.ingoh.myagents.lang.parsers.EnvironmentParserImpl;
-import net.ingoh.myagents.lang.visitors.AgentVisitorImpl;
-import net.ingoh.myagents.lang.visitors.EnvironmentVisitorImpl;
+import net.ingoh.myagents.lang.visitors.MyAgentsVisitorImpl;
 import org.antlr.v4.runtime.Lexer;
 import org.antlr.v4.runtime.Parser;
-import org.antlr.v4.runtime.ParserRuleContext;
 import org.antlr.v4.runtime.tree.AbstractParseTreeVisitor;
 
 public class DataType {
@@ -36,7 +32,7 @@ public class DataType {
     public static Class<? extends AbstractParseTreeVisitor<Object>> getVisitorForType(int type) {
         return switch (type) {
             case TYPE_ENVIRONMENT -> EnvironmentVisitorImpl.class;
-            case TYPE_AGENT -> AgentVisitorImpl.class;
+            case TYPE_AGENT -> MyAgentsVisitorImpl.class;
             default -> null;
         };
     }
