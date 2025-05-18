@@ -1,6 +1,7 @@
 package net.ingoh.myagents.lang;
 
-import net.ingoh.myagents.lang.il.ILNode;
+import com.fasterxml.jackson.databind.JsonNode;
+import net.ingoh.myagents.lang.il.ProgramDecl;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -9,13 +10,13 @@ import java.nio.file.Paths;
 import java.util.Comparator;
 import java.util.UUID;
 
-public class DSL2IL {
+public class ILConverter {
 
     public static Path string2Il(String content) {
         assert content != null : "Content cannot be null";
         Path outDir = Paths.get("./out/il/");
         Path outFile = outDir.resolve(UUID.randomUUID() + ".il");
-        ILNode result = DSLParser.parse(content);
+        ProgramDecl result = DSLParser.parse(content);
         try {
             ILSerializer.saveToFile(outFile, result);
         } catch (Exception e) {

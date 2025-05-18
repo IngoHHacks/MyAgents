@@ -1,6 +1,7 @@
 package net.ingoh.myagents.lsp.server.tokens;
 
 import net.ingoh.myagents.lang.internal.EnvironmentLexer;
+import net.ingoh.myagents.lang.internal.MyAgentsLexer;
 import net.ingoh.myagents.lsp.server.variables.TrackedVariable;
 import net.ingoh.myagents.lsp.server.variables.VariableTracker;
 import net.ingoh.myagents.lsp.server.MyAgentsLSP;
@@ -34,7 +35,7 @@ public class SemanticTokenizer {
         List<SemanticToken> tokens = new LinkedList<>();
 
         CharStream input = CharStreams.fromString(text);
-        Lexer lexer = server.getDocumentTrackData().getLexerForCurrentDocument(input);
+        Lexer lexer = new MyAgentsLexer(input);
         lexer.removeErrorListeners();
         Token token;
 

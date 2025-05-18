@@ -1,14 +1,13 @@
 package net.ingoh.myagents.lang;
 
-import net.ingoh.myagents.lang.il.ILNode;
+import net.ingoh.myagents.lang.il.ProgramDecl;
 import net.ingoh.myagents.lang.internal.MyAgentsLexer;
 import net.ingoh.myagents.lang.internal.MyAgentsParser;
-import net.ingoh.myagents.lang.parsers.*;
 import net.ingoh.myagents.lang.visitors.*;
 import org.antlr.v4.runtime.*;
 
 public class DSLParser {
-    public static ILNode parse(String content) {
+    public static ProgramDecl parse(String content) {
         assert content != null : "Content cannot be null";
         try {
             CharStream input = CharStreams.fromString(content);

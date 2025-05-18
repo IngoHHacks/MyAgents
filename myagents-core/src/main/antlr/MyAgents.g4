@@ -157,7 +157,7 @@ methodBody: block | SEMICOLON;
 
 constructorDecl: id LPAREN paramList? RPAREN constructorBody = block;
 
-fieldDecl: id ASSIGN? expr? SEMICOLON;
+fieldDecl: id ASSIGN? expr SEMICOLON;
 
 variableDecls
     : variableDecl (COMMA variableDecl)*
@@ -196,22 +196,37 @@ localClassDecl: classDecl;
 
 stmt
     : blockLabel = block
-    | ifStmt = IF parExpr stmt (ELSE stmt)?
-    | forStmt = FOR LPAREN forControl? RPAREN stmt
-    | forEachStmt = FOREACH LPAREN forEachControl RPAREN stmt
-    | whileStmt = WHILE LPAREN parExpr RPAREN stmt
-    | doStmt = DO stmt WHILE LPAREN parExpr RPAREN SEMICOLON
-    | tryStmt = TRY block (catchClause finallyBlock? | finallyBlock)
-    | switchStmt = SWITCH parExpr LBRACE switchBlockStmtGroup* switchLabel* RBRACE
-    | returnStmt = RETURN expr? SEMICOLON
-    | throwStmt = THROW expr SEMICOLON
-    | breakStmt = BREAK id? SEMICOLON
-    | continueStmt = CONTINUE id? SEMICOLON
-    | exprStmt = expr SEMICOLON
-    | switchExprStatement = switchExpr SEMICOLON
-    | idLabel = id COLON stmt
+    | ifStmt
+    | forStmt
+    | forEachStmt
+    | whileStmt
+    | doStmt
+    | tryStmt
+    | switchStmt
+    | returnStmt
+    | throwStmt
+    | breakStmt
+    | continueStmt
+    | exprStmt
+    | switchExprStatement
+    | idLabel
     | SEMICOLON
     ;
+
+ifStmt: IF parExpr thenStmt = stmt (ELSE elseStmt = stmt)?;
+forStmt: FOR LPAREN forControl? RPAREN stmt;
+forEachStmt: FOREACH LPAREN forEachControl RPAREN stmt;
+whileStmt: WHILE LPAREN parExpr RPAREN stmt;
+doStmt: DO stmt WHILE LPAREN parExpr RPAREN SEMICOLON;
+tryStmt: TRY block (catchClause finallyBlock? | finallyBlock);
+returnStmt: RETURN expr? SEMICOLON;
+throwStmt: THROW expr SEMICOLON;
+breakStmt: BREAK id? SEMICOLON;
+continueStmt: CONTINUE id? SEMICOLON;
+exprStmt: expr SEMICOLON;
+switchStmt: SWITCH parExpr LBRACE switchBlockStmtGroup* switchLabel* RBRACE;
+switchExprStatement: switchExpr SEMICOLON;
+idLabel: id COLON stmt;
 
 catchClause: CATCH block;
 
@@ -248,16 +263,8 @@ expr
 // Primary expressions [16]
     : primary
     | expr LBRACK expr RBRACK
-    | expr memberRef = DOT (
-        id
-        | methodCall
-        | THIS
-        | NEW id innerCreator
-        | SUPER superSuffix
-    )
+    | expr anyRef
     | methodCall
-    | expr DCOLON id
-    | id DCOLON (id | NEW)
     | switchExpr
 // Postfix unary expressions [15]
     | expr postfix = (INC | DEC)
@@ -280,13 +287,13 @@ expr
 // Bitwise XOR operator [6]
     | expr bxop = BITXOR expr
 // Bitwise OR operator [5]
-    | expr bop = BITOR expr
+    | expr boop = BITOR expr
 // Logic AND operator [4]
     | expr laop = AND expr
 // Logic OR operator [3]
-    | expr loap = OR expr
+    | expr loop = OR expr
 // Ternary expression [2]
-    | <assoc = right> expr ternary = QUESTION expr COLON expr
+    | expr ternary = QUESTION expr COLON expr
 // Assignment operators [1]
     | expr assign = (
         ASSIGN
@@ -302,33 +309,29 @@ expr
         | RSHIFT_ASSIGN
         | URSHIFT_ASSIGN
     ) expr
-// Lambda expression [0]
-    | lambdaExpr
-    ;
-
-lambdaExpr
-    : lambdaParameters ARROW lambdaBody;
-
-lambdaParameters
-    : id
-    | LPAREN paramList RPAREN
-    | LPAREN id (COMMA id)* RPAREN
-    ;
-
-lambdaBody
-    : block
-    | expr
     ;
 
 primary
-    : LPAREN expr RPAREN
+    : parenExpr
     | THIS
     | SUPER
     | literal
-    | id
-    | id DOT CLASS
-    | id DOT id
+    | varRef
+    | clsRef
+    | memRef
     ;
+
+parenExpr: LPAREN expr RPAREN;
+anyRef: DOT (
+               id
+               | methodCall
+               | THIS
+               | NEW
+               | SUPER superSuffix
+            );
+varRef: id;
+clsRef: id DOT CLASS;
+memRef: id DOT id;
 
 switchExpr
     : SWITCH parExpr LBRACE switchLabeledRule* RBRACE
@@ -348,13 +351,10 @@ creator
 
 createdName: id (DOT id)*;
 
-innerCreator: id classCreatorRest;
-
 classCreatorRest: arguments classBody?;
 
 arrayCreatorRest
-    : (LBRACK RBRACK)+ arrayInit
-    | (LBRACK expr RBRACK)+ (LBRACK RBRACK)*
+    : (LBRACK expr RBRACK)+ (LBRACK RBRACK)*
     ;
 
 superSuffix: arguments;

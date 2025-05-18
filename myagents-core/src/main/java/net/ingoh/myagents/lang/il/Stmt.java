@@ -1,8 +1,8 @@
 package net.ingoh.myagents.lang.il;
 
-public sealed interface Stmt extends BlockStmt
-    permits
-        BlockLabel,
+public sealed interface Stmt extends BlockStmt, ILNode
+        permits
+        Block,
         IfStmt,
         ForStmt,
         ForEachStmt,
@@ -10,7 +10,7 @@ public sealed interface Stmt extends BlockStmt
         DoStmt,
         TryStmt,
         SwitchStmt,
-        SwitchExprStatement,
+        SwitchExpr,
         ReturnStmt,
         ThrowStmt,
         BreakStmt,
