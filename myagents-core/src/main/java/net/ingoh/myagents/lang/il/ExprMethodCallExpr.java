@@ -6,7 +6,7 @@ public record ExprMethodCallExpr(Expr target, MethodIdentifier methodId, Expr...
             throw new IllegalArgumentException("Target cannot be null");
         }
         if (methodId == null) {
-            throw new IllegalArgumentException("Method name cannot be null");
+            throw new IllegalArgumentException("Method id cannot be null");
         }
         if (args == null) {
             throw new IllegalArgumentException("Arguments cannot be null");

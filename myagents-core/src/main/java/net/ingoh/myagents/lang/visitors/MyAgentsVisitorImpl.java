@@ -138,6 +138,9 @@ public class MyAgentsVisitorImpl extends MyAgentsBaseVisitor<Object> {
 
     @Override
     public List<ParameterIdentifier> visitParamList(MyAgentsParser.ParamListContext ctx) {
+        if (ctx == null) {
+            return new LinkedList<>();
+        }
         List<ParameterIdentifier> params = new LinkedList<>();
         for (var param : ctx.id()) {
             params.add(new ParameterIdentifier(param.getText()));

@@ -3,6 +3,7 @@ package net.ingoh.myagents;
 
 import net.ingoh.myagents.lang.ILConverter;
 import net.ingoh.myagents.lang.ILSerializer;
+import net.ingoh.myagents.lang.execution.Interpreter;
 import net.ingoh.myagents.lang.il.ProgramDecl;
 
 import java.nio.file.Files;
@@ -10,15 +11,16 @@ import java.nio.file.Files;
 public class Main {
     public static void main(String[] args) {
         var example = """
-file2Il (file, cls) {
-    String content;
-    try {
-        content = Files.readString(file);
-    } catch {
-        throw new RuntimeException("Error reading file: " + e.getMessage(), e);
-    }
-    assert content != null && !content.isEmpty();
-    return string2Il(content);
+type Environment;
+
+init() {
+    a = 10;
+    b = 20;
+    print(sum(a, b));
+}
+
+sum(a, b) {
+    return a + b;
 }
 """;
         ILConverter.clean();
@@ -28,6 +30,8 @@ file2Il (file, cls) {
             System.out.println(contents);
             var program = ILSerializer.deserialize(contents, ProgramDecl.class);
             assert contents.equals(ILSerializer.serialize(program));
+            Interpreter interpreter = new Interpreter();
+            interpreter.run(program);
         } catch (Exception e) {
             e.printStackTrace();
         }
