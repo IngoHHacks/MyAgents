@@ -1,5 +1,7 @@
 package net.ingoh.myagents.lang.il;
 
+import net.ingoh.myagents.lang.execution.Interpreter;
+
 import java.util.List;
 import java.util.Objects;
 
@@ -21,5 +23,23 @@ public record SwitchExpr(
                 throw new IllegalArgumentException("Case cannot be null");
             }
         }
+    }
+
+    @Override
+    public Object accept(Interpreter interpreter) {
+        Object value = expr.accept(interpreter);
+        for (Case c : cases) {
+            if (Objects.equals(c.accept(interpreter), value)) {
+                for (BlockStmt block : c.body()) {
+                    block.accept(interpreter);
+                }
+            }
+        }
+        if (defaultCase != null && !defaultCase.isEmpty()) {
+            for (BlockStmt block : defaultCase) {
+                block.accept(interpreter);
+            }
+        }
+        return null;
     }
 }

@@ -5,6 +5,7 @@ public enum SymbolType {
     METHOD,
     FIELD,
     PARAMETER,
-    LOCAL,
+    LOCAL_VARIABLE,
+    LOCAL_CLASS,
     CONSTRUCTOR
 }

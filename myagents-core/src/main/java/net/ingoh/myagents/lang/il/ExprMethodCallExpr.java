@@ -1,6 +1,10 @@
 package net.ingoh.myagents.lang.il;
 
-public record ExprMethodCallExpr(Expr target, MethodIdentifier methodId, Expr... args) implements ILNode, Expr {
+import net.ingoh.myagents.lang.execution.Interpreter;
+
+import java.util.Arrays;
+
+public record ExprMethodCallExpr(Expr target, MethodIdentifier methodId, ExprList args) implements ILNode, Expr {
     public ExprMethodCallExpr {
         if (target == null) {
             throw new IllegalArgumentException("Target cannot be null");
@@ -11,5 +15,14 @@ public record ExprMethodCallExpr(Expr target, MethodIdentifier methodId, Expr...
         if (args == null) {
             throw new IllegalArgumentException("Arguments cannot be null");
         }
+    }
+
+    @Override
+    public Object accept(Interpreter interpreter) {
+        var method = interpreter.resolveMethod(target.accept(interpreter), methodId, args);
+        var argObjs = args.exprs().stream()
+                .map(arg -> arg.accept(interpreter))
+                .toArray(Object[]::new);
+        return method.invoke(interpreter, argObjs);
     }
 }

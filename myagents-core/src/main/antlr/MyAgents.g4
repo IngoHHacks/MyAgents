@@ -190,7 +190,7 @@ block: LBRACE blockStmt* RBRACE;
 
 blockStmt: localVariableDecl SEMICOLON | localClassDecl | stmt;
 
-localVariableDecl: id ASSIGN? expr;
+localVariableDecl: id ~(LBRACE | LBRACK | LPAREN) ASSIGN? expr;
 
 localClassDecl: classDecl;
 

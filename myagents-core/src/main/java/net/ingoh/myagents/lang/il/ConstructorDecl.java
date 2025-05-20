@@ -4,7 +4,7 @@ import net.ingoh.myagents.lang.execution.Interpreter;
 
 import java.util.List;
 
-public record ConstructorDecl(List<ParameterIdentifier> params, Block body) implements ILNode, MemberDecl {
+public record ConstructorDecl(TypeIdentifier type, List<ParameterIdentifier> params, Block body) implements ILNode, MemberDecl {
     public ConstructorDecl {
         if (params == null) {
             throw new IllegalArgumentException("Parameters cannot be null");

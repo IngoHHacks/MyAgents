@@ -4,7 +4,6 @@ import net.ingoh.myagents.lang.execution.Interpreter;
 
 import java.util.List;
 
-public interface MethodSymbol extends Symbol {
+public interface MethodSymbol extends CallableSymbol {
     List<String> getParameterNames();
-    Object invoke(Interpreter interpreter, Object... args);
 }

@@ -9,9 +9,16 @@ import java.util.stream.Stream;
 
 public class MethodSymbolJava implements MethodSymbol {
     private final Method src;
+    private final Object obj;
 
     public MethodSymbolJava(Method src) {
         this.src = src;
+        this.obj = null;
+    }
+
+    public MethodSymbolJava(Method src, Object obj) {
+        this.src = src;
+        this.obj = obj;
     }
 
     @Override
@@ -29,7 +36,7 @@ public class MethodSymbolJava implements MethodSymbol {
     @Override
     public Object invoke(Interpreter interpreter, Object... args) {
         try {
-            return src.invoke(interpreter.getExecutionSource().getSource(), args);
+            return src.invoke(obj != null ? obj : interpreter.getExecutionSource().getSource(), args);
         } catch (Exception e) {
             throw new RuntimeException("Failed to invoke method: " + getName(), e);
         }

@@ -17,6 +17,7 @@ init() {
     a = 10;
     b = 20;
     print(sum(a, b));
+    return 0;
 }
 
 sum(a, b) {
@@ -27,7 +28,6 @@ sum(a, b) {
         var path = ILConverter.string2Il(example);
         try {
             var contents = Files.readString(path);
-            System.out.println(contents);
             var program = ILSerializer.deserialize(contents, ProgramDecl.class);
             assert contents.equals(ILSerializer.serialize(program));
             Interpreter interpreter = new Interpreter();

@@ -1,5 +1,7 @@
 package net.ingoh.myagents.lang.symbols;
 
+import net.ingoh.myagents.lang.execution.Interpreter;
+
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Parameter;
 import java.util.List;
@@ -21,5 +23,19 @@ public class ConstructorSymbolJava implements ConstructorSymbol {
     @Override
     public List<String> getParameterNames() {
         return Stream.of(constructor.getParameters()).map(Parameter::getName).collect(Collectors.toList());
+    }
+
+    @Override
+    public int getParameterCount() {
+        return constructor.getParameterCount();
+    }
+
+    @Override
+    public Object invoke(Interpreter interpreter, Object... args) {
+        try {
+            return constructor.newInstance(args);
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to invoke constructor: " + getName(), e);
+        }
     }
 }

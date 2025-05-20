@@ -1,5 +1,8 @@
 package net.ingoh.myagents.lang.il;
 
+import net.ingoh.myagents.lang.execution.Interpreter;
+import net.ingoh.myagents.lang.symbols.VariableSymbol;
+
 public record ShiftRightAssignExpr(
         Expr left,
         Expr right
@@ -10,4 +13,14 @@ public record ShiftRightAssignExpr(
         }
     }
 
+    @Override
+    public Object accept(Interpreter interpreter) {
+        var variableSymbol = (VariableSymbol) left.accept(interpreter);
+        var valueSymbol = right.accept(interpreter);
+        if (valueSymbol instanceof VariableSymbol) {
+            valueSymbol = ((VariableSymbol) valueSymbol).getValue(interpreter, Number.class);
+        }
+        variableSymbol.setValue(interpreter, variableSymbol.getValue(interpreter, Number.class).intValue() >> ((Number) valueSymbol).intValue());
+        return variableSymbol;
+    }
 }

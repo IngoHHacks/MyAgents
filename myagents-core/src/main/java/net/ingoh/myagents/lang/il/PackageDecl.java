@@ -4,7 +4,7 @@ import net.ingoh.myagents.lang.execution.Interpreter;
 
 public record PackageDecl(NamespaceIdentifier namespace) implements ILNode, TopLevelDecl {
     public PackageDecl {
-        if (namespace == null || namespace.name().isEmpty()) {
+        if (namespace == null || namespace.id().isEmpty()) {
             throw new IllegalArgumentException("Namespace cannot be null or empty");
         }
     }

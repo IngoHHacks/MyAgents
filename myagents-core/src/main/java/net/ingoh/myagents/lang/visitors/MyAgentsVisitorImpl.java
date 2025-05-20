@@ -133,7 +133,7 @@ public class MyAgentsVisitorImpl extends MyAgentsBaseVisitor<Object> {
 
     @Override
     public ConstructorDecl visitConstructorDecl(MyAgentsParser.ConstructorDeclContext ctx) {
-        return new ConstructorDecl(visitParamList(ctx.paramList()), visitBlock(ctx.constructorBody));
+        return new ConstructorDecl(new TypeIdentifier(ctx.id().getText()), visitParamList(ctx.paramList()), visitBlock(ctx.constructorBody));
     }
 
     @Override
@@ -535,7 +535,7 @@ public class MyAgentsVisitorImpl extends MyAgentsBaseVisitor<Object> {
     @Override
     public GlobalMethodCallExpr visitMethodCall(MyAgentsParser.MethodCallContext ctx) {
         if (ctx.id() != null) {
-            return new GlobalMethodCallExpr(new AnyVariableIdentifier(ctx.id().getText()), visitExprList(ctx.arguments().exprList()));
+            return new GlobalMethodCallExpr(new AnyMemberIdentifier(ctx.id().getText()), visitExprList(ctx.arguments().exprList()));
         }
         if (ctx.THIS() != null) {
             return new GlobalMethodCallExpr(new ThisExpr(), visitExprList(ctx.arguments().exprList()));
