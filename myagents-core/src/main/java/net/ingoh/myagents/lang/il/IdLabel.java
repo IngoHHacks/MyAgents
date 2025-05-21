@@ -1,5 +1,6 @@
 package net.ingoh.myagents.lang.il;
 
+import net.ingoh.myagents.lang.execution.Interpreter;
 import net.ingoh.myagents.lang.il.Stmt;
 
 public record IdLabel(
@@ -9,5 +10,10 @@ public record IdLabel(
         if (id == null) {
             throw new IllegalArgumentException("ID cannot be null");
         }
+    }
+
+    @Override
+    public Object accept(Interpreter interpreter) {
+        return id.accept(interpreter);
     }
 }

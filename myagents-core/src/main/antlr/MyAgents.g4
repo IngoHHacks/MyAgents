@@ -157,7 +157,7 @@ methodBody: block | SEMICOLON;
 
 constructorDecl: id LPAREN paramList? RPAREN constructorBody = block;
 
-fieldDecl: id ASSIGN? expr SEMICOLON;
+fieldDecl: id ~(LBRACE | LBRACK | LPAREN) ASSIGN? expr? SEMICOLON;
 
 variableDecls
     : variableDecl (COMMA variableDecl)*

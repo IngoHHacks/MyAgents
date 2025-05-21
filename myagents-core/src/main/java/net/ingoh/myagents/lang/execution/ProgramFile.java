@@ -13,22 +13,22 @@ public class ProgramFile {
 
     private List<Object> instances = new LinkedList<>();
 
-    public static ProgramFile fromClass(Class<?> cls) {
+    public static ProgramFile fromClass(Interpreter interpreter, Class<?> cls) {
         ProgramFile programFile = new ProgramFile();
         programFile.namespace = new NamespaceIdentifier(cls.getPackageName());
         programFile.symbolTable = new SymbolTable();
         // We don't need imports because classes aren't run by the interpreter directly
         for (var innerClass : cls.getDeclaredClasses()) {
-            programFile.symbolTable.addSymbol(SymbolType.CLASS, innerClass.getSimpleName(), new ClassSymbolJava(innerClass));
+            programFile.symbolTable.addSymbol(interpreter, SymbolType.NONLOCAL_CLASS, innerClass.getSimpleName(), new ClassSymbolJava(innerClass));
         }
         for (var method : cls.getDeclaredMethods()) {
-            programFile.symbolTable.addSymbol(SymbolType.METHOD, method.getName(), new MethodSymbolJava(method));
+            programFile.symbolTable.addSymbol(interpreter, SymbolType.METHOD, method.getName(), new MethodSymbolJava(method));
         }
         for (var field : cls.getDeclaredFields()) {
-            programFile.symbolTable.addSymbol(SymbolType.FIELD, field.getName(), new VariableSymbolJava(field));
+            programFile.symbolTable.addSymbol(interpreter, SymbolType.FIELD, field.getName(), new VariableSymbolJava(field));
         }
         for (var constructor : cls.getDeclaredConstructors()) {
-            programFile.symbolTable.addSymbol(SymbolType.CONSTRUCTOR, constructor.getName(), new ConstructorSymbolJava(constructor));
+            programFile.symbolTable.addSymbol(interpreter, SymbolType.CONSTRUCTOR, constructor.getName(), new ConstructorSymbolJava(constructor));
         }
         return programFile;
     }

@@ -13,16 +13,32 @@ public class Main {
         var example = """
 type Environment;
 
+class MathHelper {
+    sum(a, b) {
+        return a + b;
+    }
+}
+
+class AnObject {
+    a;
+    b;
+    
+    sum() {
+        return MathHelper.sum(a, b);
+    }
+}
+
 init() {
     a = 10;
     b = 20;
-    print(sum(a, b));
+    print(MathHelper.sum(a, b));
+    obj = new AnObject();
+    obj.a = 10;
+    obj.b = 20;
+    print(obj.sum())
     return 0;
 }
 
-sum(a, b) {
-    return a + b;
-}
 """;
         ILConverter.clean();
         var path = ILConverter.string2Il(example);

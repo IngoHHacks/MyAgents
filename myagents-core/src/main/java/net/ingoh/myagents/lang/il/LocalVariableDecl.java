@@ -7,9 +7,6 @@ public record LocalVariableDecl(LocalVariableIdentifier id, Expr expr) implement
         if (id == null) {
             throw new IllegalArgumentException("Field id cannot be null");
         }
-        if (expr == null) {
-            throw new IllegalArgumentException("Expression cannot be null");
-        }
     }
 
     @Override

@@ -20,5 +20,5 @@ public sealed interface Stmt extends BlockStmt, ILNode
         ExprStmt,
         IdLabel
 {
-    //Object accept(Interpreter interpreter);
+    Object accept(Interpreter interpreter);
 }

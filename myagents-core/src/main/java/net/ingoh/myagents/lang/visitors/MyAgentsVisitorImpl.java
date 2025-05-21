@@ -101,7 +101,13 @@ public class MyAgentsVisitorImpl extends MyAgentsBaseVisitor<Object> {
 
     @Override
     public LocalVariableDecl visitLocalVariableDecl(MyAgentsParser.LocalVariableDeclContext ctx) {
-        return new LocalVariableDecl(new LocalVariableIdentifier(ctx.id().getText()), visitExpr(ctx.expr()));
+        Expr expr;
+        if (ctx.expr() != null) {
+            expr = visitExpr(ctx.expr());
+        } else {
+            expr = null;
+        }
+        return new LocalVariableDecl(new LocalVariableIdentifier(ctx.id().getText()), expr);
     }
 
     @Override
@@ -128,7 +134,13 @@ public class MyAgentsVisitorImpl extends MyAgentsBaseVisitor<Object> {
 
     @Override
     public FieldDecl visitFieldDecl(MyAgentsParser.FieldDeclContext ctx) {
-        return new FieldDecl(new FieldIdentifier(ctx.id().getText()), visitExpr(ctx.expr()));
+        Expr expr;
+        if (ctx.expr() != null) {
+            expr = visitExpr(ctx.expr());
+        } else {
+            expr = null;
+        }
+        return new FieldDecl(new FieldIdentifier(ctx.id().getText()), expr);
     }
 
     @Override
@@ -573,7 +585,11 @@ public class MyAgentsVisitorImpl extends MyAgentsBaseVisitor<Object> {
                     body.add(visitClassBodyDecl(bodyDecl));
                 }
             }
-            return new ObjectCreationExpr(new TypeIdentifier(name), visitExprList(ctx.classCreatorRest().arguments().exprList()), body);
+            ExprList exprs = new ExprList(new LinkedList<>());
+            if (ctx.classCreatorRest().arguments() != null && ctx.classCreatorRest().arguments().exprList() != null) {
+                exprs = visitExprList(ctx.classCreatorRest().arguments().exprList());
+            }
+            return new ObjectCreationExpr(new TypeIdentifier(name), exprs, body);
         }
         if (ctx.arrayCreatorRest() != null) {
             var dimensions = new LinkedList<Expr>();

@@ -23,8 +23,8 @@ public class Interpreter {
 
     private void runFile(ProgramDecl program) {
         currentProgramFile = parseFile(program);
-        if (currentProgramFile.symbolTable.hasSymbol(SymbolType.METHOD, "init")) {
-            var m = currentProgramFile.symbolTable.resolveMethod("init");
+        if (currentProgramFile.symbolTable.hasSymbol(this, SymbolType.METHOD, "init")) {
+            var m = currentProgramFile.symbolTable.resolveMethod(this, "init");
             var code = invoke(ExecutionSource.STATIC, m);
             System.out.println("Program exited with code: " + code);
         }
@@ -50,10 +50,20 @@ public class Interpreter {
     private ProgramFile getBuiltInFile(NamespaceIdentifier namespace) {
         try {
             var cls = Class.forName(namespace.id());
-            return ProgramFile.fromClass(cls);
+            return ProgramFile.fromClass(this, cls);
         } catch (Exception e) {
             throw new RuntimeException("Error resolving file: " + namespace.id(), e);
         }
+    }
+
+    public Object runBlock(List<BlockStmt> statements) {
+        for (var stmt : statements) {
+            if (stmt instanceof ReturnStmt) {
+                return stmt.accept(this);
+            }
+            stmt.accept(this);
+        }
+        return null;
     }
 
     private Object invoke(ExecutionSource src, MethodSymbol method, Object... args) {
@@ -83,11 +93,11 @@ public class Interpreter {
 
     public CallableSymbol resolveGlobalMethod(IdentifierOrSpecial methodName, ExprList args) {
         if (methodName instanceof ThisExpr) {
-            return currentProgramFile.symbolTable.resolveConstructor(args.exprs().size());
+            return currentProgramFile.symbolTable.resolveConstructor(this, args.exprs().size());
         } else if (methodName instanceof SuperExpr) {
             throw new RuntimeException("Super method calls not supported yet");
         } else if (methodName instanceof Identifier methodId) {
-            return currentProgramFile.symbolTable.resolveMethod(methodId.id());
+            return currentProgramFile.symbolTable.resolveMethod(this, methodId.id());
         }
         throw new IllegalArgumentException("Invalid method name: " + methodName);
     }
@@ -103,7 +113,7 @@ public class Interpreter {
         if (currentProgramFile == null) {
             throw new RuntimeException("File not found: " + type.getNamespace().id());
         }
-        var constructor = currentProgramFile.symbolTable.resolveConstructor(size);
+        var constructor = currentProgramFile.symbolTable.resolveConstructor(this, size);
         if (constructor == null) {
             throw new RuntimeException("Constructor not found: " + type.getNamespace().id());
         }
@@ -139,33 +149,37 @@ public class Interpreter {
     }
 
     public void classDecl(ClassDecl classDecl) {
-        currentProgramFile.symbolTable.addSymbol(SymbolType.CLASS, classDecl.id().id(), new ClassSymbolImpl(classDecl));
+        currentProgramFile.symbolTable.addSymbol(this, SymbolType.NONLOCAL_CLASS, classDecl.id().id(), new ClassSymbolImpl(classDecl));
     }
 
     public void methodDecl(MethodDecl methodDecl) {
-        currentProgramFile.symbolTable.addSymbol(SymbolType.METHOD, methodDecl.id().id(), new MethodSymbolImpl(methodDecl));
+        currentProgramFile.symbolTable.addSymbol(this, SymbolType.METHOD, methodDecl.id().id(), new MethodSymbolImpl(methodDecl));
     }
 
     public void fieldDecl(FieldDecl fieldDecl) {
-        currentProgramFile.symbolTable.addSymbol(SymbolType.FIELD, fieldDecl.id().id(), new VariableSymbolImpl(this, fieldDecl.id().id(), visitExpr(fieldDecl.expr())));
+        currentProgramFile.symbolTable.addSymbol(this, SymbolType.FIELD, fieldDecl.id().id(), new VariableSymbolImpl(this, fieldDecl.id().id(), visitExpr(fieldDecl.expr())));
     }
 
     public void constructorDecl(ConstructorDecl constructorDecl) {
-        currentProgramFile.symbolTable.addSymbol(SymbolType.CONSTRUCTOR, String.join(",", constructorDecl.params().stream()
-                .map(param -> param.id())
+        currentProgramFile.symbolTable.addSymbol(this, SymbolType.CONSTRUCTOR, String.join(",", constructorDecl.params().stream()
+                .map(ParameterIdentifier::id)
                 .toList()), new ConstructorSymbolImpl(constructorDecl));
     }
 
     public void localVariableDecl(LocalVariableDecl localVariableDecl) {
-        currentProgramFile.symbolTable.addSymbol(SymbolType.LOCAL_VARIABLE, localVariableDecl.id().id(), new VariableSymbolImpl(this, localVariableDecl.id().id(), visitExpr(localVariableDecl.expr())));
+        currentProgramFile.symbolTable.addSymbol(this, SymbolType.LOCAL_VARIABLE, localVariableDecl.id().id(), new VariableSymbolImpl(this, localVariableDecl.id().id(), visitExpr(localVariableDecl.expr())));
     }
 
     public void localClassDecl(LocalClassDecl localClassDecl) {
-        currentProgramFile.symbolTable.addSymbol(SymbolType.LOCAL_CLASS, localClassDecl.classDecl().id().id(), new ClassSymbolImpl(localClassDecl.classDecl()));
+        currentProgramFile.symbolTable.addSymbol(this, SymbolType.LOCAL_CLASS, localClassDecl.classDecl().id().id(), new ClassSymbolImpl(localClassDecl.classDecl()));
+    }
+
+    public Symbol getSymbol(SymbolType type, String id) {
+        return currentProgramFile.symbolTable.getSymbol(this, type, id);
     }
 
     public Symbol getSymbol(String id) {
-        return currentProgramFile.symbolTable.getSymbol(SymbolType.LOCAL_VARIABLE, id);
+        return currentProgramFile.symbolTable.getSymbol(this, SymbolType.ANY, id);
     }
 
     public Object invokeMethod(MethodDecl methodDecl, Object[] args) {
@@ -175,15 +189,9 @@ public class Interpreter {
         List<ParameterIdentifier> params = methodDecl.params();
         for (int i = 0; i < params.size(); i++) {
             var param = params.get(i);
-            currentProgramFile.symbolTable.addSymbol(SymbolType.PARAMETER, param.id(), new VariableSymbolImpl(this, param.id(), args[i]));
+            currentProgramFile.symbolTable.addSymbol(this, SymbolType.PARAMETER, param.id(), new VariableSymbolImpl(this, param.id(), args[i]));
         }
-        for (var stmt : methodDecl.body().statements()) {
-            if (stmt instanceof ReturnStmt) {
-                return stmt.accept(this);
-            }
-            stmt.accept(this);
-        }
-        return null;
+        return methodDecl.body().accept(this);
     }
 
     public Object visitExpr(Expr expr) {
@@ -198,11 +206,6 @@ public class Interpreter {
     public Object memberAccessExpr(Object targetValue, Object memberValue) {
         // TODO
         throw new UnsupportedOperationException("Member access expression not implemented yet");
-    }
-
-    ////////////////////////////////////////////
-
-    public void incrementVar(Object value) {
     }
 
     ////////////////////////////////////////////

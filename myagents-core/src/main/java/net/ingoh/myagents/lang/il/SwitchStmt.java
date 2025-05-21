@@ -1,5 +1,6 @@
 package net.ingoh.myagents.lang.il;
 
+import net.ingoh.myagents.lang.execution.Interpreter;
 import net.ingoh.myagents.lang.il.Case;
 import net.ingoh.myagents.lang.il.Expr;
 import net.ingoh.myagents.lang.il.Stmt;
@@ -24,5 +25,24 @@ public record SwitchStmt (
                 throw new IllegalArgumentException("Case cannot be null");
             }
         }
+    }
+
+    @Override
+    public Object accept(Interpreter interpreter) {
+        Object switchValue = expr.accept(interpreter);
+
+        for (Case c : cases) {
+            if (Objects.equals(c.accept(interpreter), switchValue)) {
+                return interpreter.runBlock(c.body());
+            }
+        }
+
+        for (BlockStmt block : defaultBody) {
+            if (block != null) {
+                block.accept(interpreter);
+            }
+        }
+
+        return null;
     }
 }

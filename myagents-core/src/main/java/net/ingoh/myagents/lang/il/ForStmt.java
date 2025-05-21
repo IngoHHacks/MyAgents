@@ -1,5 +1,7 @@
 package net.ingoh.myagents.lang.il;
 
+import net.ingoh.myagents.lang.execution.Interpreter;
+
 import java.util.List;
 
 public record ForStmt(
@@ -21,5 +23,20 @@ public record ForStmt(
         if (body == null) {
             throw new IllegalArgumentException("Body cannot be null");
         }
+    }
+
+    @Override
+    public Object accept(Interpreter interpreter) {
+        init.accept(interpreter);
+
+        while ((Boolean) condition.accept(interpreter)) {
+            body.accept(interpreter);
+
+            for (Expr expr : update.exprs()) {
+                expr.accept(interpreter);
+            }
+        }
+
+        return null;
     }
 }

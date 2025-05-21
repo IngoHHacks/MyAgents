@@ -1,11 +1,15 @@
 package net.ingoh.myagents.lang.execution;
 
 public enum SymbolType {
-    CLASS,
+    NONLOCAL_CLASS,
     METHOD,
     FIELD,
     PARAMETER,
     LOCAL_VARIABLE,
     LOCAL_CLASS,
-    CONSTRUCTOR
+    CONSTRUCTOR,
+    CALLABLE, // Method, Constructor
+    CLASS, // Nonlocal class, Local class
+    VARIABLE, // Field, Parameter, Local Variable
+    ANY
 }
