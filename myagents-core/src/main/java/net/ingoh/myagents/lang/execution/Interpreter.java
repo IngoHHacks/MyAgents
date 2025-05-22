@@ -1,5 +1,6 @@
 package net.ingoh.myagents.lang.execution;
 
+import net.ingoh.myagents.core.CustomObject;
 import net.ingoh.myagents.lang.il.*;
 import net.ingoh.myagents.lang.symbols.*;
 
@@ -13,16 +14,27 @@ public class Interpreter {
     private ExecutionSource executionSource;
     private ProgramFile currentProgramFile;
 
-    public Interpreter() {
-
+    public Interpreter(List<ProgramDecl> sources) {
+        for (var source : sources) {
+            var file = parseFile(source);
+            var name = "";
+            for (var decl : source.topLevelDecls()) {
+                if (decl instanceof PackageDecl packageDecl) {
+                    name = packageDecl.namespace().id();
+                } else if (decl instanceof OverrideBodyDecl overrideBodyDecl) {
+                    name = overrideBodyDecl.name();
+                }
+            }
+            programFiles.put(name, file);
+        }
     }
 
-    public void run(ProgramDecl program) {
+    public void run(ProgramFile program) {
         runFile(program);
     }
 
-    private void runFile(ProgramDecl program) {
-        currentProgramFile = parseFile(program);
+    private void runFile(ProgramFile program) {
+        currentProgramFile = program;
         if (currentProgramFile.symbolTable.hasSymbol(this, SymbolType.METHOD, "init")) {
             var m = currentProgramFile.symbolTable.resolveMethod(this, "init");
             var code = invoke(ExecutionSource.STATIC, m);
@@ -39,20 +51,20 @@ public class Interpreter {
         return currentProgramFile;
     }
 
-    public ProgramFile resolveFile(NamespaceIdentifier namespace) {
-        var file = programFiles.get(namespace.id());
+    public ProgramFile resolveFile(String str) {
+        var file = programFiles.get(str);
         if (file == null) {
-            return getBuiltInFile(namespace);
+            return getBuiltInFile(str);
         }
         return file;
     }
 
-    private ProgramFile getBuiltInFile(NamespaceIdentifier namespace) {
+    private ProgramFile getBuiltInFile(String str) {
         try {
-            var cls = Class.forName(namespace.id());
+            var cls = Class.forName(str);
             return ProgramFile.fromClass(this, cls);
         } catch (Exception e) {
-            throw new RuntimeException("Error resolving file: " + namespace.id(), e);
+            throw new RuntimeException("Error resolving file: " + str, e);
         }
     }
 
@@ -80,7 +92,24 @@ public class Interpreter {
     public CallableSymbol resolveMethod(Object src, IdentifierOrSpecial methodId, ExprList args) {
         var tempFile = currentProgramFile;
         var tempExecutionSource = executionSource;
-        currentProgramFile = resolveFile(new NamespaceIdentifier(src.getClass().getPackageName()));
+        String str;
+        if (src instanceof ClassSymbol classSymbol) {
+            str = classSymbol.getNamepsace();
+        } else {
+            if (src instanceof VariableSymbol variableSymbol) {
+                var obj = variableSymbol.getValue(this);
+                if (obj == null) {
+                    throw new RuntimeException("Object is null: " + variableSymbol.getName());
+                }
+                src = obj;
+            }
+            if (src instanceof CustomObject co) {
+                str = co.type.id();
+            } else {
+                str = src.getClass().getName();
+            }
+        }
+        currentProgramFile = str != null ? resolveFile(str) : currentProgramFile;
         executionSource = new ExecutionSource(src);
         if (currentProgramFile == null) {
             throw new RuntimeException("File not found: " + src.getClass().getPackageName());
@@ -109,7 +138,7 @@ public class Interpreter {
 
     public CallableSymbol resolveConstructor(TypeIdentifier type, int size) {
         var tempFile = currentProgramFile;
-        currentProgramFile = resolveFile(type.getNamespace());
+        currentProgramFile = resolveFile(type.id());
         if (currentProgramFile == null) {
             throw new RuntimeException("File not found: " + type.getNamespace().id());
         }
@@ -132,20 +161,22 @@ public class Interpreter {
         if (importDecl.isStatic()) {
             throw new RuntimeException("Static import not supported yet");
         } else {
-            currentProgramFile = programFiles.get(importDecl.namespace().id());
-            var file = resolveFile(importDecl.namespace());
+            var file = resolveFile(importDecl.namespace().id());
             programFiles.put(file.namespace.id(), file);
-            currentProgramFile = prevFile;
         }
     }
 
     public void declsFromOverrideBody(OverrideBodyDecl overrideBodyDecl) {
-         var decls = overrideBodyDecl.bodyDecls();
-         for (var decl : decls) {
-             if (!(decl instanceof Block)) {
-                 decl.accept(this);
-             }
-         }
+        var decls = overrideBodyDecl.bodyDecls();
+        for (var decl : decls) {
+            if (decl != null && !(decl instanceof Block)) {
+                decl.accept(this);
+            }
+        }
+        if (currentProgramFile.symbolTable.constructors.size() == 0) {
+            var constructor = new ConstructorSymbolImpl(new ConstructorDecl(new TypeIdentifier(overrideBodyDecl.name()), List.of(), null));
+            currentProgramFile.symbolTable.addSymbol(this, SymbolType.CONSTRUCTOR, overrideBodyDecl.name(), constructor);
+        }
     }
 
     public void classDecl(ClassDecl classDecl) {
@@ -195,6 +226,9 @@ public class Interpreter {
     }
 
     public Object visitExpr(Expr expr) {
+        if (expr == null) {
+            return null;
+        }
         return expr.accept(this);
     }
 

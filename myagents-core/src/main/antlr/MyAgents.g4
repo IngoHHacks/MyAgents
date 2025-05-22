@@ -143,6 +143,11 @@ packageDecl: PACKAGE qualifiedName SEMICOLON;
 
 importDecl: IMPORT STATIC? qualifiedName (DOT MULT)? SEMICOLON;
 
+specialDecl
+    : overrideTypeDecl
+    | overrideNameDecl
+    ;
+
 classDecl: CLASS id classBody;
 
 classBody: LBRACE classBodyDecl* RBRACE;
@@ -157,7 +162,7 @@ methodBody: block | SEMICOLON;
 
 constructorDecl: id LPAREN paramList? RPAREN constructorBody = block;
 
-fieldDecl: id ~(LBRACE | LBRACK | LPAREN) ASSIGN? expr? SEMICOLON;
+fieldDecl: id ~(LBRACE | LBRACK | LPAREN | DOT) id* ASSIGN? expr? SEMICOLON;
 
 variableDecls
     : variableDecl (COMMA variableDecl)*
@@ -190,7 +195,7 @@ block: LBRACE blockStmt* RBRACE;
 
 blockStmt: localVariableDecl SEMICOLON | localClassDecl | stmt;
 
-localVariableDecl: id ~(LBRACE | LBRACK | LPAREN) ASSIGN? expr;
+localVariableDecl: id ~(LBRACE | LBRACK | LPAREN | DOT) id* ASSIGN? expr;
 
 localClassDecl: classDecl;
 
@@ -362,4 +367,8 @@ superSuffix: arguments;
 arguments: LPAREN exprList? RPAREN;
 
 // DSL-specific rules
-overrideBodyDecl: classBodyDecl*;
+overrideBodyDecl: (classBodyDecl | specialDecl)*;
+
+overrideTypeDecl: 'type' id;
+
+overrideNameDecl: 'name' id;

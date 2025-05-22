@@ -13,4 +13,9 @@ public class ClassSymbolImpl implements ClassSymbol {
     public String getName() {
         return classDecl.id().id();
     }
+
+    @Override
+    public String getNamepsace() {
+        return classDecl.id().getNamespace().id();
+    }
 }

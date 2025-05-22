@@ -11,4 +11,9 @@ public class ClassSymbolJava implements ClassSymbol {
     public String getName() {
         return src.getSimpleName();
     }
+
+    @Override
+    public String getNamepsace() {
+        return src.getPackageName();
+    }
 }

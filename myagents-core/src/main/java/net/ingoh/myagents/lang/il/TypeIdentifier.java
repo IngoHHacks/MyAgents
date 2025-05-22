@@ -1,5 +1,6 @@
 package net.ingoh.myagents.lang.il;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import net.ingoh.myagents.lang.execution.Interpreter;
 
 public record TypeIdentifier(String id) implements ILNode, MemberIdentifier {
@@ -14,7 +15,11 @@ public record TypeIdentifier(String id) implements ILNode, MemberIdentifier {
         return id;
     }
 
+    @JsonIgnore
     public NamespaceIdentifier getNamespace() {
+        if (!id.contains(".")) {
+            return new NamespaceIdentifier("");
+        }
         return new NamespaceIdentifier(id.substring(0, id.lastIndexOf('.')));
     }
 }

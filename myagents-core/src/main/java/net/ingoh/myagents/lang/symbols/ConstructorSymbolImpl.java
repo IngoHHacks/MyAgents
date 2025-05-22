@@ -31,7 +31,7 @@ public class ConstructorSymbolImpl implements ConstructorSymbol {
 
     @Override
     public Object invoke(Interpreter interpreter, Object... args) {
-        var type = interpreter.resolveFile(constructorDecl.type().getNamespace());
+        var type = interpreter.resolveFile(constructorDecl.type().id());
         return type.newInstance(interpreter, constructorDecl, args);
     }
 }

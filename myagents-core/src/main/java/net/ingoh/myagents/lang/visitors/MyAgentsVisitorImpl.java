@@ -50,9 +50,23 @@ public class MyAgentsVisitorImpl extends MyAgentsBaseVisitor<Object> {
     public OverrideBodyDecl visitOverrideBodyDecl(MyAgentsParser.OverrideBodyDeclContext ctx) {
         List<ClassBodyDecl> bodyDecls = new LinkedList<>();
         for (var bodyDecl : ctx.classBodyDecl()) {
-            bodyDecls.add(visitClassBodyDecl(bodyDecl));
+            var decls = visitClassBodyDecl(bodyDecl);
+            if (decls != null) {
+                for (var d : decls) {
+                    bodyDecls.add(d);
+                }
+            }
         }
-        return new OverrideBodyDecl(bodyDecls);
+        var name = "";
+        var type = "";
+        for (var spcDecl : ctx.specialDecl()) {
+            if (spcDecl.overrideNameDecl() != null) {
+                name = spcDecl.overrideNameDecl().id().getText();
+            } else if (spcDecl.overrideTypeDecl() != null) {
+                type = spcDecl.overrideTypeDecl().id().getText();
+            }
+        }
+        return new OverrideBodyDecl(bodyDecls, type, name);
     }
 
     @Override
@@ -60,69 +74,81 @@ public class MyAgentsVisitorImpl extends MyAgentsBaseVisitor<Object> {
         String className = ctx.id().getText();
         List<ClassBodyDecl> bodyDecls = new LinkedList<>();
         for (var bodyDecl : ctx.classBody().classBodyDecl()) {
-            bodyDecls.add(visitClassBodyDecl(bodyDecl));
+            var decl = visitClassBodyDecl(bodyDecl);
+            if (decl != null) {
+                for (var d : decl) {
+                    bodyDecls.add(d);
+                }
+            }
         }
         return new ClassDecl(new TypeIdentifier(className), bodyDecls);
     }
 
     @Override
-    public ClassBodyDecl visitClassBodyDecl(MyAgentsParser.ClassBodyDeclContext ctx) {
+    public List<ClassBodyDecl> visitClassBodyDecl(MyAgentsParser.ClassBodyDeclContext ctx) {
         if (ctx.block() != null) {
-            return visitBlock(ctx.block());
+            return List.of(visitBlock(ctx.block()));
         }
         if (ctx.memberDecl() != null) {
-            return visitMemberDecl(ctx.memberDecl());
+            return visitMemberDecl(ctx.memberDecl()).stream().map(decl -> (ClassBodyDecl) decl).toList();
         }
-        throw new IllegalArgumentException("Unknown class body declaration type");
+        return null;
     }
 
     @Override
     public Block visitBlock(MyAgentsParser.BlockContext ctx) {
         List<BlockStmt> statements = new LinkedList<>();
         for (var statement : ctx.blockStmt()) {
-            statements.add(visitBlockStmt(statement));
+            var stmts = visitBlockStmt(statement);
+            for (var stmt : stmts) {
+                statements.add(stmt);
+            }
         }
         return new Block(statements);
     }
 
     @Override
-    public BlockStmt visitBlockStmt(MyAgentsParser.BlockStmtContext ctx) {
+    public List<BlockStmt> visitBlockStmt(MyAgentsParser.BlockStmtContext ctx) {
         if (ctx.stmt() != null) {
-            return visitStmt(ctx.stmt());
+            return List.of(visitStmt(ctx.stmt()));
         }
 		if (ctx.localVariableDecl() != null) {
-            return visitLocalVariableDecl(ctx.localVariableDecl());
+            return visitLocalVariableDecl(ctx.localVariableDecl()).stream().map(decl -> (BlockStmt) decl).toList();
         }
 		if (ctx.localClassDecl() != null) {
-            return new LocalClassDecl(visitClassDecl(ctx.localClassDecl().classDecl()));
+            return List.of(new LocalClassDecl(visitClassDecl(ctx.localClassDecl().classDecl())));
         }
         throw new IllegalArgumentException("Unknown block statement type");
     }
 
     @Override
-    public LocalVariableDecl visitLocalVariableDecl(MyAgentsParser.LocalVariableDeclContext ctx) {
+    public List<LocalVariableDecl> visitLocalVariableDecl(MyAgentsParser.LocalVariableDeclContext ctx) {
         Expr expr;
         if (ctx.expr() != null) {
             expr = visitExpr(ctx.expr());
         } else {
             expr = null;
         }
-        return new LocalVariableDecl(new LocalVariableIdentifier(ctx.id().getText()), expr);
+        List<LocalVariableDecl> vars = new LinkedList<>();
+        for (var id : ctx.id()) {
+            vars.add(new LocalVariableDecl(new LocalVariableIdentifier(id.getText()), expr));
+        }
+        return vars;
     }
 
     @Override
-    public MemberDecl visitMemberDecl(MyAgentsParser.MemberDeclContext ctx) {
+    public List<MemberDecl> visitMemberDecl(MyAgentsParser.MemberDeclContext ctx) {
         if (ctx.methodDecl() != null) {
-            return visitMethodDecl(ctx.methodDecl());
+            return List.of(visitMethodDecl(ctx.methodDecl()));
         }
 		if (ctx.fieldDecl() != null) {
-            return visitFieldDecl(ctx.fieldDecl());
+            return visitFieldDecl(ctx.fieldDecl()).stream().map(decl -> (MemberDecl) decl).toList();
         }
 		if (ctx.constructorDecl() != null) {
-            return visitConstructorDecl(ctx.constructorDecl());
+            return List.of(visitConstructorDecl(ctx.constructorDecl()));
         }
 		if (ctx.classDecl() != null) {
-            return visitClassDecl(ctx.classDecl());
+            return List.of(visitClassDecl(ctx.classDecl()));
         }
         throw new IllegalArgumentException("Unknown member declaration type");
     }
@@ -133,14 +159,18 @@ public class MyAgentsVisitorImpl extends MyAgentsBaseVisitor<Object> {
     }
 
     @Override
-    public FieldDecl visitFieldDecl(MyAgentsParser.FieldDeclContext ctx) {
+    public List<FieldDecl> visitFieldDecl(MyAgentsParser.FieldDeclContext ctx) {
         Expr expr;
         if (ctx.expr() != null) {
             expr = visitExpr(ctx.expr());
         } else {
             expr = null;
         }
-        return new FieldDecl(new FieldIdentifier(ctx.id().getText()), expr);
+        List<FieldDecl> fields = new LinkedList<>();
+        for (var id : ctx.id()) {
+            fields.add(new FieldDecl(new FieldIdentifier(id.getText()), expr));
+        }
+        return fields;
     }
 
     @Override
@@ -224,7 +254,11 @@ public class MyAgentsVisitorImpl extends MyAgentsBaseVisitor<Object> {
     @Override
     public ForInit visitForInit(MyAgentsParser.ForInitContext ctx) {
         if (ctx.localVariableDecl() != null) {
-            return visitLocalVariableDecl(ctx.localVariableDecl());
+            var localInit = visitLocalVariableDecl(ctx.localVariableDecl());
+            if (localInit.size() > 1) {
+                throw new IllegalArgumentException("For loop can only have one local variable declaration");
+            }
+            return localInit.get(0);
         }
 		if (ctx.exprList() != null) {
             return visitExprList(ctx.exprList());
@@ -285,7 +319,10 @@ public class MyAgentsVisitorImpl extends MyAgentsBaseVisitor<Object> {
                 }
 		        if (label.DEFAULT() != null) {
                     for (var blockStmt : switchCase.blockStmt()) {
-                        defaultBody.add(visitBlockStmt(blockStmt));
+                        var stmts = visitBlockStmt(blockStmt);
+                        for (var stmt : stmts) {
+                            defaultBody.add(stmt);
+                        }
                     }
                 } else {
                     throw new IllegalArgumentException("Unknown switch label type");
@@ -293,7 +330,10 @@ public class MyAgentsVisitorImpl extends MyAgentsBaseVisitor<Object> {
             }
             List<BlockStmt> statements = new LinkedList<>();
             for (var blockStmt : switchCase.blockStmt()) {
-                statements.add(visitBlockStmt(blockStmt));
+                var stmts = visitBlockStmt(blockStmt);
+                for (var stmt : stmts) {
+                    statements.add(stmt);
+                }
             }
             cases.add(new Case(new SwitchLabel(constExprs, variableIdentifiers), statements));
         }
@@ -309,7 +349,10 @@ public class MyAgentsVisitorImpl extends MyAgentsBaseVisitor<Object> {
             List<BlockStmt> statements = new LinkedList<>();
             if (switchCase.switchRuleOutcome().blockStmt() != null) {
                 for (var blockStmt : switchCase.switchRuleOutcome().blockStmt()) {
-                    statements.add(visitBlockStmt(blockStmt));
+                    var stmts = visitBlockStmt(blockStmt);
+                    for (var stmt : stmts) {
+                        statements.add(stmt);
+                    }
                 }
             } else if (switchCase.switchRuleOutcome().block() != null) {
                 statements.add(visitBlock(switchCase.switchRuleOutcome().block()));
@@ -582,7 +625,12 @@ public class MyAgentsVisitorImpl extends MyAgentsBaseVisitor<Object> {
             var body = new LinkedList<ClassBodyDecl>();
             if (ctx.classCreatorRest().classBody() != null) {
                 for (var bodyDecl : ctx.classCreatorRest().classBody().classBodyDecl()) {
-                    body.add(visitClassBodyDecl(bodyDecl));
+                    var decls = visitClassBodyDecl(bodyDecl);
+                    if (decls != null) {
+                        for (var d : decls) {
+                            body.add(d);
+                        }
+                    }
                 }
             }
             ExprList exprs = new ExprList(new LinkedList<>());

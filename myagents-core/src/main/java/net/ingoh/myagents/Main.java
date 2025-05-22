@@ -7,47 +7,28 @@ import net.ingoh.myagents.lang.execution.Interpreter;
 import net.ingoh.myagents.lang.il.ProgramDecl;
 
 import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.LinkedList;
+import java.util.List;
 
 public class Main {
     public static void main(String[] args) {
-        var example = """
-type Environment;
-
-class MathHelper {
-    sum(a, b) {
-        return a + b;
-    }
-}
-
-class AnObject {
-    a;
-    b;
-    
-    sum() {
-        return MathHelper.sum(a, b);
-    }
-}
-
-init() {
-    a = 10;
-    b = 20;
-    print(MathHelper.sum(a, b));
-    obj = new AnObject();
-    obj.a = 10;
-    obj.b = 20;
-    print(obj.sum())
-    return 0;
-}
-
-""";
+        var examples = new String[]{
+                "examples/environment.yenv",
+                "examples/agent1.yage",
+                "examples/agent2.yage",
+        };
         ILConverter.clean();
-        var path = ILConverter.string2Il(example);
+        List<ProgramDecl> programDecls = new LinkedList<>();
         try {
-            var contents = Files.readString(path);
-            var program = ILSerializer.deserialize(contents, ProgramDecl.class);
-            assert contents.equals(ILSerializer.serialize(program));
-            Interpreter interpreter = new Interpreter();
-            interpreter.run(program);
+            for (String example : examples) {
+                var path = ILConverter.string2Il(Files.readString(Path.of(example)));
+                var contents = Files.readString(path);
+                var program = ILSerializer.deserialize(contents, ProgramDecl.class);
+                programDecls.add(program);
+            }
+            Interpreter interpreter = new Interpreter(programDecls);
+            interpreter.run(interpreter.resolveFile("MyEnv"));
         } catch (Exception e) {
             e.printStackTrace();
         }

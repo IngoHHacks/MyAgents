@@ -1,5 +1,6 @@
 package net.ingoh.myagents.lang.execution;
 
+import net.ingoh.myagents.core.CustomObject;
 import net.ingoh.myagents.lang.il.*;
 import net.ingoh.myagents.lang.symbols.*;
 
@@ -34,7 +35,7 @@ public class ProgramFile {
     }
 
     public Object newInstance(Interpreter interpreter, ConstructorDecl constructor, Object... args) {
-        var obj = new Object();
+        var obj = new CustomObject(constructor.type());
         instances.add(obj);
         var tempExecutionSource = interpreter.getExecutionSource();
         interpreter.setExecutionSource(new ExecutionSource(obj));

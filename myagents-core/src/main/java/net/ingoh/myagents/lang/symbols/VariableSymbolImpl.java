@@ -56,4 +56,9 @@ public class VariableSymbolImpl implements VariableSymbol {
             throw new IllegalArgumentException("Unsupported number type: " + thisNum.getClass().getName());
         }
     }
+
+    @Override
+    public String toString() {
+        return value.toString();
+    }
 }
