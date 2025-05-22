@@ -1,6 +1,11 @@
 package net.ingoh.myagents.lang.il;
 
-import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.annotation.JsonTypeInfo;
+import net.ingoh.myagents.lang.execution.Interpreter;
 
-@JsonInclude(JsonInclude.Include.NON_NULL)
-public interface ILNode { };
+@JsonTypeInfo(use = JsonTypeInfo.Id.MINIMAL_CLASS, include = JsonTypeInfo.As.PROPERTY, property = "TYPE")
+public sealed interface ILNode permits AddExpr, AnyMemberIdentifier, AnyVariableIdentifier, ArrayAccessExpr, ArrayCreationExpr, AssignExpr, AssignmentExpr, BinaryExpr, BitAndAssignExpr, BitAndExpr, BitOrAssignExpr, BitOrExpr, BitwiseNotExpr, BitXorAssignExpr, BitXorExpr, Block, BlockStmt, BooleanLiteralExpr, BreakStmt, Case, CharLiteralExpr, ClassBodyDecl, ClassDecl, ClassRefExpr, ConstructorDecl, ContinueStmt, DivAssignExpr, DivExpr, DoStmt, EqualityExpr, Expr, ExprList, ExprMethodCallExpr, ExprNewRefExpr, ExprStmt, ExprSuperRefExpr, ExprThisRefExpr, FieldDecl, FieldIdentifier, FloatLiteralExpr, ForEachStmt, ForInit, ForStmt, GlobalMethodCallExpr, GreaterThanExpr, GreaterThanOrEqualExpr, Identifier, IdentifierOrSpecial, IdLabel, IfStmt, ImportDecl, InequalityExpr, IntLiteralExpr, LabelIdentifier, LessThanExpr, LessThanOrEqualExpr, LiteralExpr, LocalClassDecl, LocalVariableDecl, LocalVariableIdentifier, LogicAndExpr, LogicOrExpr, MemberAccessExpr, MemberContainerIdentifier, MemberDecl, MemberIdentifier, MemberRefExpr, MethodCallExpr, MethodDecl, MethodIdentifier, MinusAssignExpr, ModAssignExpr, ModExpr, MultAssignExpr, MultExpr, NamespaceIdentifier, NotExpr, NullLiteralExpr, ObjectCreationExpr, OverrideBodyDecl, PackageDecl, ParameterIdentifier, ParenthesizedExpr, PlusAssignExpr, PostfixDecrementExpr, PostfixExpr, PostfixIncrementExpr, PrefixDecrementExpr, PrefixExpr, PrefixIncrementExpr, PrimaryExpr, ProgramDecl, RefExpr, RelationalExpr, ReturnStmt, ShiftLeftAssignExpr, ShiftLeftExpr, ShiftRightAssignExpr, ShiftRightExpr, ShiftRightUnsignedAssignExpr, ShiftRightUnsignedExpr, Stmt, StringLiteralExpr, SubExpr, SuperExpr, SwitchExpr, SwitchLabel, SwitchStmt, TernaryExpr, TextBlockLiteralExpr, ThisExpr, ThrowStmt, TopLevelDecl, TryStmt, TypeIdentifier, UnaryMinusExpr, UnaryPlusExpr, VariableIdentifier, WhileStmt {
+    default Object accept(Interpreter interpreter) {
+        return null;
+    }
+}

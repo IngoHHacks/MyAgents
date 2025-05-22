@@ -1,0 +1,12 @@
+type Environment;
+name MyEnv;
+
+agents Agent1 Agent2;
+
+init()
+{
+    agent1 = new Agent1();
+    agent2 = new Agent2();
+
+    agent1.doStuff("test");
+}

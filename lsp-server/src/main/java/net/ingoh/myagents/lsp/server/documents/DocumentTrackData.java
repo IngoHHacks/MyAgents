@@ -37,32 +37,6 @@ public class DocumentTrackData {
         return currentDocumentType;
     }
 
-    public Class<? extends Lexer> getLexerForCurrentDocument() {
-        return DataType.getLexerForType(currentDocumentType);
-    }
-
-    public Lexer getLexerForCurrentDocument(CharStream input) {
-        var lexerClass = getLexerForCurrentDocument();
-        try {
-            return lexerClass.getConstructor(CharStream.class).newInstance(input);
-        } catch (Exception e) {
-            throw new RuntimeException("Failed to create lexer for current document", e);
-        }
-    }
-
-    public Class<? extends Parser> getParserForCurrentDocument() {
-        return DataType.getParserForType(currentDocumentType);
-    }
-
-    public Parser getParserForCurrentDocument(CharStream input) {
-        var parserClass = getParserForCurrentDocument();
-        try {
-            return parserClass.getConstructor(CharStream.class).newInstance(input);
-        } catch (Exception e) {
-            throw new RuntimeException("Failed to create parser for current document", e);
-        }
-    }
-
     public void clear() {
         currentDocumentUri = null;
         currentDocumentType = DataType.TYPE_UNKNOWN;

@@ -23,6 +23,7 @@ dependencies {
     implementation "com.fasterxml.jackson.core:jackson-core:$jacksonVersion"
     implementation "com.fasterxml.jackson.core:jackson-databind:$jacksonVersion"
     implementation "com.fasterxml.jackson.core:jackson-annotations:$jacksonVersion"
+    implementation 'com.sigpwned:jackson-modules-java17-sealed-classes:0.0.0' // This module adds support for Java 17+ sealed classes to Jackson.
 
     // JavaPoet
     // IL -> Java
