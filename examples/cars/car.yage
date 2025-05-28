@@ -1,0 +1,32 @@
+type Agent;
+name Car;
+
+SAFE_DISTANCE 20;
+ACCELERATION 10;
+DECELERATION 50;
+SPEED_LIMIT 50;
+
+speed 0;
+
+tick(dt) {
+    // Check if there is another car in front
+    next = env.getAgent(Car, (id + 1) % env.getAgentCount(Car));
+    dist = next.x - x;
+
+    if (dist < 0) {
+        // The car ahead wrapped to the other side
+        dist = (next.x + env.width) - x;
+    }
+    if (dist < SAFE_DISTANCE) {
+        // If too close, decelerate
+        speed = max(0, speed - DECELERATION * dt);
+    } else {
+        // If safe, accelerate
+        speed = min(SPEED_LIMIT, speed + ACCELERATION * dt);
+    }
+    if (dist < 5) {
+        speed = 0;
+    }
+
+    return move(speed * dt, 0);
+}

@@ -1,18 +1,22 @@
 package net.ingoh.myagents.lang.symbols;
 
 import net.ingoh.myagents.lang.execution.Interpreter;
-import net.ingoh.myagents.lang.il.FieldDecl;
+
+import java.util.Hashtable;
 
 public class VariableSymbolImpl implements VariableSymbol {
     private final String name;
-    private Object value;
+    private Object staticValue;
+    private Object defaultValue;
+    private Hashtable<Object, Object> values = new Hashtable<>();
 
-    public VariableSymbolImpl(Interpreter interpreter, String name, Object value) {
+    public VariableSymbolImpl(Interpreter interpreter, String name, Object object, Object value) {
         this.name = name;
         while (value instanceof VariableSymbol) {
-            value = ((VariableSymbol) value).getValue(interpreter);
+            value = ((VariableSymbol) value).getValue(interpreter, object);
         }
-        this.value = value;
+        this.defaultValue = value;
+        setValue(interpreter, object, value);
     }
 
     @Override
@@ -21,12 +25,20 @@ public class VariableSymbolImpl implements VariableSymbol {
     }
 
     @Override
-    public Object getValue(Interpreter interpreter) {
-        return value;
+    public Object getValue(Interpreter interpreter, Object object) {
+        if (object == null) {
+            return staticValue;
+        }
+        if (values.containsKey(object)) {
+            return values.get(object);
+        }
+        setValue(interpreter, object, defaultValue);
+        return values.get(object);
     }
 
     @Override
-    public <T> T getValue(Interpreter interpreter, Class<T> type) {
+    public <T> T getValue(Interpreter interpreter, Object object, Class<T> type) {
+        var value = getValue(interpreter, object);
         if (value == null) {
             return null;
         }
@@ -38,20 +50,24 @@ public class VariableSymbolImpl implements VariableSymbol {
     }
 
     @Override
-    public void setValue(Interpreter interpreter, Object value) {
+    public void setValue(Interpreter interpreter, Object object, Object value) {
         while (value instanceof VariableSymbol) {
-            value = ((VariableSymbol) value).getValue(interpreter);
+            value = ((VariableSymbol) value).getValue(interpreter, object);
         }
-        this.value = value;
+        if (object == null) {
+            staticValue = value;
+        } else {
+            values.put(object, value);
+        }
     }
 
     @Override
-    public void changeValueBy(Interpreter interpreter, Number value) {
-        var thisNum = getValue(interpreter, Number.class);
+    public void changeValueBy(Interpreter interpreter, Object object, Number value) {
+        var thisNum = getValue(interpreter, object, Number.class);
         if (thisNum instanceof Integer || thisNum instanceof Long) {
-            this.value = thisNum.longValue() + value.longValue();
+            setValue(interpreter, object, thisNum.longValue() + value.longValue());
         } else if (thisNum instanceof Float || thisNum instanceof Double) {
-            this.value = thisNum.doubleValue() + value.doubleValue();
+            setValue(interpreter, object, thisNum.doubleValue() + value.doubleValue());
         } else {
             throw new IllegalArgumentException("Unsupported number type: " + thisNum.getClass().getName());
         }
@@ -59,6 +75,6 @@ public class VariableSymbolImpl implements VariableSymbol {
 
     @Override
     public String toString() {
-        return value.toString();
+        return staticValue.toString();
     }
 }

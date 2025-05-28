@@ -1,0 +1,16 @@
+type Environment;
+name CarsEnv;
+tickRate 100;
+width 1000;
+height 200;
+
+agents Car;
+
+init()
+{
+    for (i = 0; i < 50; i++)
+    {
+        create(Car, i * 20 + rnd() * 10, 100);
+    }
+    return true;
+}

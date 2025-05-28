@@ -1,21 +1,27 @@
 package net.ingoh.myagents.lang.execution;
 
-import net.ingoh.myagents.lang.symbols.*;
-
 import java.io.PrintStream;
-import java.util.Dictionary;
 import java.util.Hashtable;
+
+import net.ingoh.myagents.lang.symbols.CallableSymbol;
+import net.ingoh.myagents.lang.symbols.ClassSymbol;
+import net.ingoh.myagents.lang.symbols.ConstructorSymbol;
+import net.ingoh.myagents.lang.symbols.MethodSymbol;
+import net.ingoh.myagents.lang.symbols.MethodSymbolJava;
+import net.ingoh.myagents.lang.symbols.Symbol;
+import net.ingoh.myagents.lang.symbols.VariableSymbol;
+import net.ingoh.myagents.lang.symbols.VariableSymbolImpl;
 
 public class SymbolTable {
 
     // TODO: Allow variable shadowing and enforce scope rules
-    public Dictionary<String, SymbolType> symbols = new Hashtable<>();
-    public Dictionary<String, Symbol> declarations = new Hashtable<>();
+    public Hashtable<String, SymbolType> symbols = new Hashtable<>();
+    public Hashtable<String, Symbol> declarations = new Hashtable<>();
 
-    public Dictionary<String, ClassSymbol> classes = new Hashtable<>();
-    public Dictionary<String, MethodSymbol> methods = new Hashtable<>();
-    public Dictionary<String, VariableSymbol> fields = new Hashtable<>();
-    public Dictionary<String, ConstructorSymbol> constructors = new Hashtable<>();
+    public Hashtable<String, ClassSymbol> classes = new Hashtable<>();
+    public Hashtable<String, MethodSymbol> methods = new Hashtable<>();
+    public Hashtable<String, VariableSymbol> fields = new Hashtable<>();
+    public Hashtable<String, ConstructorSymbol> constructors = new Hashtable<>();
 
     public SymbolTable() {}
 
@@ -25,7 +31,7 @@ public class SymbolTable {
             case PARAMETER:
             case LOCAL_VARIABLE:
             case VARIABLE:
-                addSymbol(interpreter, symbolType, simpleName, new VariableSymbolImpl(interpreter, simpleName, null));
+                addSymbol(interpreter, symbolType, simpleName, new VariableSymbolImpl(interpreter, simpleName, null, null));
                 break;
             default:
                 throw new IllegalArgumentException("Cannot add symbol of type " + symbolType + " without a declaration");
@@ -33,27 +39,39 @@ public class SymbolTable {
     }
 
     public void addSymbol(Interpreter interpreter, SymbolType symbolType, String simpleName, Symbol decl) {
-        symbols.put(simpleName, symbolType);
-        declarations.put(simpleName, decl);
-        switch (symbolType) {
-            case NONLOCAL_CLASS:
-            case LOCAL_CLASS:
-            case CLASS:
-                classes.put(simpleName, (ClassSymbol) decl);
-                break;
-            case CALLABLE:
-            case METHOD:
-                methods.put(simpleName, (MethodSymbol) decl);
-                break;
-            case FIELD:
-            case PARAMETER:
-            case LOCAL_VARIABLE:
-            case VARIABLE:
-                fields.put(simpleName, (VariableSymbol) decl);
-                break;
-            case CONSTRUCTOR:
-                constructors.put(simpleName, (ConstructorSymbol) decl);
-                break;
+        if (!symbols.containsKey(simpleName)) {
+            symbols.put(simpleName, symbolType);
+            declarations.put(simpleName, decl);
+            switch (symbolType) {
+                case NONLOCAL_CLASS:
+                case LOCAL_CLASS:
+                case CLASS:
+                    classes.put(simpleName, (ClassSymbol) decl);
+                    break;
+                case CALLABLE:
+                case METHOD:
+                    methods.put(simpleName, (MethodSymbol) decl);
+                    break;
+                case FIELD:
+                case PARAMETER:
+                case LOCAL_VARIABLE:
+                case VARIABLE:
+                    fields.put(simpleName, (VariableSymbol) decl);
+                    break;
+                case CONSTRUCTOR:
+                    constructors.put(simpleName, (ConstructorSymbol) decl);
+                    break;
+            }
+        } else {
+            if (symbolType == SymbolType.FIELD || symbolType == SymbolType.PARAMETER ||
+                symbolType == SymbolType.LOCAL_VARIABLE || symbolType == SymbolType.VARIABLE) {
+                var varSymbol = (VariableSymbol) declarations.get(simpleName);
+                if (varSymbol != null) {
+                    varSymbol.setValue(interpreter, interpreter.getExecutionSource().getSource(), decl);
+                }
+            } else {
+                symbols.put(simpleName, symbolType);
+            }
         }
     }
 
@@ -95,8 +113,15 @@ public class SymbolTable {
 
     private MethodSymbol resolveSpecialMethod(Interpreter interpreter, String methodName) {
         try {
-            if (methodName.equals("print")) {
-                return new MethodSymbolJava(PrintStream.class.getMethod("println", Object.class), System.out);
+            switch (methodName) {
+                case "print":
+                    return new MethodSymbolJava(PrintStream.class.getMethod("println", Object.class), System.out);
+                case "min":
+                    return new MethodSymbolJava(Math.class.getMethod("min", double.class, double.class), Math.class);
+                case "max":
+                    return new MethodSymbolJava(Math.class.getMethod("max", double.class, double.class), Math.class);
+                case "rnd":
+                    return new MethodSymbolJava(Math.class.getMethod("random"), Math.class);
             }
         } catch (NoSuchMethodException e) {
             throw new RuntimeException("Error resolving special method: " + methodName, e);

@@ -16,7 +16,7 @@ public record PrefixIncrementExpr(
     @Override
     public Object accept(Interpreter interpreter) {
         var value = (VariableSymbol) expr.accept(interpreter);
-        value.changeValueBy(interpreter, 1);
+        value.changeValueBy(interpreter, interpreter.getExecutionSource().getSource(), 1);
         return value;
     }
 }

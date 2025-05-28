@@ -1,6 +1,0 @@
-type Agent;
-name Agent1;
-
-doStuff (msg) {
-    print(msg);
-}

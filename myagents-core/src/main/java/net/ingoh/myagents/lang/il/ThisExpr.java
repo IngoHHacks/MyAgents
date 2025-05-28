@@ -7,4 +7,9 @@ public record ThisExpr() implements ILNode, PrimaryExpr, IdentifierOrSpecial {
     public Object accept(Interpreter interpreter) {
         return interpreter.getExecutionSource().getSource();
     }
+
+    @Override
+    public String id() {
+        return "this";
+    }
 }

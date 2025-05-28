@@ -146,6 +146,7 @@ importDecl: IMPORT STATIC? qualifiedName (DOT MULT)? SEMICOLON;
 specialDecl
     : overrideTypeDecl
     | overrideNameDecl
+    | agentsDecl
     ;
 
 classDecl: CLASS id classBody;
@@ -162,7 +163,7 @@ methodBody: block | SEMICOLON;
 
 constructorDecl: id LPAREN paramList? RPAREN constructorBody = block;
 
-fieldDecl: id ~(LBRACE | LBRACK | LPAREN | DOT) id* ASSIGN? expr? SEMICOLON;
+fieldDecl: id {!_input.LT(1).getText().matches("[\\{\\[\\(\\)]")}? id* ASSIGN? expr? SEMICOLON;
 
 variableDecls
     : variableDecl (COMMA variableDecl)*
@@ -372,3 +373,5 @@ overrideBodyDecl: (classBodyDecl | specialDecl)*;
 overrideTypeDecl: 'type' id;
 
 overrideNameDecl: 'name' id;
+
+agentsDecl: 'agents' (LBRACE? id* RBRACE?)?;

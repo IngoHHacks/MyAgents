@@ -5,8 +5,8 @@ import net.ingoh.myagents.lang.execution.Interpreter;
 
 public record TypeIdentifier(String id) implements ILNode, MemberIdentifier {
     public TypeIdentifier {
-        if (id == null || id.isEmpty()) {
-            throw new IllegalArgumentException("Type id cannot be null or empty");
+        if (id == null) {
+            throw new IllegalArgumentException("Type id cannot be null");
         }
     }
 

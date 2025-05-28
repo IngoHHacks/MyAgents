@@ -19,8 +19,9 @@ public record GlobalMethodCallExpr(IdentifierOrSpecial methodName, ExprList args
             throw new RuntimeException("Method not found: " + methodName);
         }
         var argObjs = args.exprs().stream()
-                .map(arg -> arg.accept(interpreter))
+                .map(arg -> arg.accept(interpreter)).map(x -> interpreter.transformVars(interpreter, x))
                 .toArray(Object[]::new);
-        return method.invoke(interpreter, argObjs);
+        var obj = interpreter.getExecutionSource().getSource();
+        return method.invoke(interpreter, obj, argObjs);
     }
 }

@@ -16,7 +16,7 @@ public record NotExpr(
     @Override
     public Object accept(Interpreter interpreter) {
         var value = (VariableSymbol) expr.accept(interpreter);
-        value.setValue(interpreter, !value.getValue(interpreter, boolean.class));
+        value.setValue(interpreter, interpreter.getExecutionSource().getSource(), !value.getValue(interpreter, interpreter.getExecutionSource().getSource(), boolean.class));
         return value;
     }
 }

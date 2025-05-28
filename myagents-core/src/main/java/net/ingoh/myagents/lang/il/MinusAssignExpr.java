@@ -18,9 +18,9 @@ public record MinusAssignExpr(
         var variableSymbol = (VariableSymbol) left.accept(interpreter);
         var valueSymbol = right.accept(interpreter);
         if (valueSymbol instanceof VariableSymbol) {
-            valueSymbol = ((VariableSymbol) valueSymbol).getValue(interpreter, Number.class);
+            valueSymbol = ((VariableSymbol) valueSymbol).getValue(interpreter, interpreter.getExecutionSource().getSource(), Number.class);
         }
-        variableSymbol.changeValueBy(interpreter, (Number) valueSymbol);
+        variableSymbol.changeValueBy(interpreter, interpreter.getExecutionSource().getSource(), (Number) valueSymbol);
         return variableSymbol;
     }
 }

@@ -4,6 +4,7 @@ import net.ingoh.myagents.lang.il.*;
 import net.ingoh.myagents.lang.internal.MyAgentsBaseVisitor;
 import net.ingoh.myagents.lang.internal.MyAgentsLexer;
 import net.ingoh.myagents.lang.internal.MyAgentsParser;
+import org.antlr.v4.runtime.RuleContext;
 
 import java.util.LinkedList;
 import java.util.List;
@@ -49,8 +50,13 @@ public class MyAgentsVisitorImpl extends MyAgentsBaseVisitor<Object> {
     @Override
     public OverrideBodyDecl visitOverrideBodyDecl(MyAgentsParser.OverrideBodyDeclContext ctx) {
         List<ClassBodyDecl> bodyDecls = new LinkedList<>();
+        var cls = ctx.specialDecl().stream().filter(spcDecl -> spcDecl.overrideTypeDecl() != null).findFirst().orElse(null);
+        var className = "";
+        if (cls != null) {
+             className = cls.overrideTypeDecl().id().getText();
+        }
         for (var bodyDecl : ctx.classBodyDecl()) {
-            var decls = visitClassBodyDecl(bodyDecl);
+            var decls = visitClassBodyDecl(bodyDecl, new TypeIdentifier(className));
             if (decls != null) {
                 for (var d : decls) {
                     bodyDecls.add(d);
@@ -59,14 +65,17 @@ public class MyAgentsVisitorImpl extends MyAgentsBaseVisitor<Object> {
         }
         var name = "";
         var type = "";
+        List<String> agents = new LinkedList<String>();
         for (var spcDecl : ctx.specialDecl()) {
             if (spcDecl.overrideNameDecl() != null) {
                 name = spcDecl.overrideNameDecl().id().getText();
             } else if (spcDecl.overrideTypeDecl() != null) {
                 type = spcDecl.overrideTypeDecl().id().getText();
+            } else if (spcDecl.agentsDecl() != null) {
+                agents = spcDecl.agentsDecl().id().stream().map(RuleContext::getText).toList();
             }
         }
-        return new OverrideBodyDecl(bodyDecls, type, name);
+        return new OverrideBodyDecl(bodyDecls, type, name, agents);
     }
 
     @Override
@@ -74,7 +83,7 @@ public class MyAgentsVisitorImpl extends MyAgentsBaseVisitor<Object> {
         String className = ctx.id().getText();
         List<ClassBodyDecl> bodyDecls = new LinkedList<>();
         for (var bodyDecl : ctx.classBody().classBodyDecl()) {
-            var decl = visitClassBodyDecl(bodyDecl);
+            var decl = visitClassBodyDecl(bodyDecl, new TypeIdentifier(className));
             if (decl != null) {
                 for (var d : decl) {
                     bodyDecls.add(d);
@@ -84,13 +93,12 @@ public class MyAgentsVisitorImpl extends MyAgentsBaseVisitor<Object> {
         return new ClassDecl(new TypeIdentifier(className), bodyDecls);
     }
 
-    @Override
-    public List<ClassBodyDecl> visitClassBodyDecl(MyAgentsParser.ClassBodyDeclContext ctx) {
+    public List<ClassBodyDecl> visitClassBodyDecl(MyAgentsParser.ClassBodyDeclContext ctx, TypeIdentifier rootType) {
         if (ctx.block() != null) {
             return List.of(visitBlock(ctx.block()));
         }
         if (ctx.memberDecl() != null) {
-            return visitMemberDecl(ctx.memberDecl()).stream().map(decl -> (ClassBodyDecl) decl).toList();
+            return visitMemberDecl(ctx.memberDecl(), rootType).stream().map(decl -> (ClassBodyDecl) decl).toList();
         }
         return null;
     }
@@ -136,8 +144,7 @@ public class MyAgentsVisitorImpl extends MyAgentsBaseVisitor<Object> {
         return vars;
     }
 
-    @Override
-    public List<MemberDecl> visitMemberDecl(MyAgentsParser.MemberDeclContext ctx) {
+    public List<MemberDecl> visitMemberDecl(MyAgentsParser.MemberDeclContext ctx, TypeIdentifier rootType) {
         if (ctx.methodDecl() != null) {
             return List.of(visitMethodDecl(ctx.methodDecl()));
         }
@@ -145,7 +152,7 @@ public class MyAgentsVisitorImpl extends MyAgentsBaseVisitor<Object> {
             return visitFieldDecl(ctx.fieldDecl()).stream().map(decl -> (MemberDecl) decl).toList();
         }
 		if (ctx.constructorDecl() != null) {
-            return List.of(visitConstructorDecl(ctx.constructorDecl()));
+            return List.of(visitConstructorDecl(ctx.constructorDecl(), rootType));
         }
 		if (ctx.classDecl() != null) {
             return List.of(visitClassDecl(ctx.classDecl()));
@@ -173,9 +180,8 @@ public class MyAgentsVisitorImpl extends MyAgentsBaseVisitor<Object> {
         return fields;
     }
 
-    @Override
-    public ConstructorDecl visitConstructorDecl(MyAgentsParser.ConstructorDeclContext ctx) {
-        return new ConstructorDecl(new TypeIdentifier(ctx.id().getText()), visitParamList(ctx.paramList()), visitBlock(ctx.constructorBody));
+    public ConstructorDecl visitConstructorDecl(MyAgentsParser.ConstructorDeclContext ctx, TypeIdentifier rootType) {
+        return new ConstructorDecl(new TypeIdentifier(ctx.id().getText()), rootType, visitParamList(ctx.paramList()), visitBlock(ctx.constructorBody));
     }
 
     @Override
@@ -192,6 +198,9 @@ public class MyAgentsVisitorImpl extends MyAgentsBaseVisitor<Object> {
 
     @Override
     public Stmt visitStmt(MyAgentsParser.StmtContext ctx) {
+        if (ctx == null) {
+            return null;
+        }
         if (ctx.blockLabel != null) {
             return visitBlock(ctx.blockLabel);
         }
@@ -268,6 +277,9 @@ public class MyAgentsVisitorImpl extends MyAgentsBaseVisitor<Object> {
 
     @Override
     public ExprList visitExprList(MyAgentsParser.ExprListContext ctx) {
+        if (ctx == null) {
+            return new ExprList(new LinkedList<>());
+        }
         List<Expr> exprs = new LinkedList<>();
         for (var expr : ctx.expr()) {
             exprs.add(visitExpr(expr));
@@ -625,7 +637,7 @@ public class MyAgentsVisitorImpl extends MyAgentsBaseVisitor<Object> {
             var body = new LinkedList<ClassBodyDecl>();
             if (ctx.classCreatorRest().classBody() != null) {
                 for (var bodyDecl : ctx.classCreatorRest().classBody().classBodyDecl()) {
-                    var decls = visitClassBodyDecl(bodyDecl);
+                    var decls = visitClassBodyDecl(bodyDecl, new TypeIdentifier(name));
                     if (decls != null) {
                         for (var d : decls) {
                             body.add(d);

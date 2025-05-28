@@ -28,6 +28,10 @@ dependencies {
     // JavaPoet
     // IL -> Java
     implementation "com.squareup:javapoet:$javapoetVersion"
+
+    // ByteBuddy
+    // Proxy generation
+    implementation "net.bytebuddy:byte-buddy:$bytebuddyVersion"
 }
 
 generateGrammarSource {

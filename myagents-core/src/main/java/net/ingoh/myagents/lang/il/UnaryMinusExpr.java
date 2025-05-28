@@ -15,10 +15,10 @@ public record UnaryMinusExpr(
     @Override
     public Object accept(Interpreter interpreter) {
         var value = (VariableSymbol) expr.accept(interpreter);
-        if (value.getValue(interpreter) instanceof Long || value.getValue(interpreter) instanceof Integer) {
-            value.setValue(interpreter, -value.getValue(interpreter, long.class));
+        if (value.getValue(interpreter, interpreter.getExecutionSource().getSource()) instanceof Long || value.getValue(interpreter, interpreter.getExecutionSource().getSource()) instanceof Integer) {
+            value.setValue(interpreter, interpreter.getExecutionSource().getSource(), -value.getValue(interpreter, interpreter.getExecutionSource().getSource(), long.class));
         } else {
-            value.setValue(interpreter, -value.getValue(interpreter, double.class));
+            value.setValue(interpreter, interpreter.getExecutionSource().getSource(), -value.getValue(interpreter, interpreter.getExecutionSource().getSource(), double.class));
         }
         return value;
     }

@@ -27,7 +27,7 @@ public record ForEachStmt(
         if (collectionValue instanceof Iterable<?> iterable) {
             for (var item : iterable) {
                 var symbol = (VariableSymbol) interpreter.getSymbol(SymbolType.VARIABLE, variable.id());
-                symbol.setValue(interpreter, item);
+                symbol.setValue(interpreter, interpreter.getExecutionSource().getSource(), item);
                 body.accept(interpreter);
             }
         } else {

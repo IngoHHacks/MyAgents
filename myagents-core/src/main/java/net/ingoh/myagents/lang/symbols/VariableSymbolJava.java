@@ -6,9 +6,11 @@ import java.lang.reflect.Field;
 
 public class VariableSymbolJava implements VariableSymbol {
     private final Field src;
+    private Object staticValue;
 
     public VariableSymbolJava(Field src) {
         this.src = src;
+        this.staticValue = null;
     }
 
     @Override
@@ -17,18 +19,24 @@ public class VariableSymbolJava implements VariableSymbol {
     }
 
     @Override
-    public Object getValue(Interpreter interpreter) {
+    public Object getValue(Interpreter interpreter, Object object) {
         try {
-            return src.get(interpreter.getExecutionSource().getSource());
+            if (object == null) {
+                return staticValue;
+            }
+            return src.get(object);
         } catch (IllegalAccessException e) {
             throw new RuntimeException("Failed to access field value", e);
         }
     }
 
     @Override
-    public <T> T getValue(Interpreter interpreter, Class<T> type) {
+    public <T> T getValue(Interpreter interpreter, Object object, Class<T> type) {
         try {
-            Object value = src.get(interpreter.getExecutionSource().getSource());
+            if (object == null) {
+                return type.cast(staticValue);
+            }
+            Object value = src.get(object);
             try {
                 return type.cast(value);
             } catch (ClassCastException e) {
@@ -40,21 +48,28 @@ public class VariableSymbolJava implements VariableSymbol {
     }
 
     @Override
-    public void setValue(Interpreter interpreter, Object value) {
+    public void setValue(Interpreter interpreter, Object object, Object value) {
         try {
-            src.set(interpreter.getExecutionSource().getSource(), value);
+            if (object == null) {
+                staticValue = value;
+                return;
+            }
+            src.set(object, value);
         } catch (IllegalAccessException e) {
             throw new RuntimeException("Failed to set field value", e);
         }
     }
 
     @Override
-    public void changeValueBy(Interpreter interpreter, Number value) {
-         var thisNum = getValue(interpreter, Number.class);
+    public void changeValueBy(Interpreter interpreter, Object object, Number value) {
+         var thisNum = getValue(interpreter, object, Number.class);
+         if (object == null) {
+            thisNum = thisNum.longValue() + (staticValue instanceof Number ? ((Number) staticValue).longValue() : 0);
+         }
          if (thisNum instanceof Integer || thisNum instanceof Long) {
-            setValue(interpreter, thisNum.longValue() + value.longValue());
+            setValue(interpreter, object, thisNum.longValue() + value.longValue());
          } else if (thisNum instanceof Float || thisNum instanceof Double) {
-            setValue(interpreter,thisNum.doubleValue() + value.doubleValue());
+            setValue(interpreter, object, thisNum.doubleValue() + value.doubleValue());
          } else {
             throw new IllegalArgumentException("Unsupported number type: " + thisNum.getClass().getName());
          }

@@ -18,9 +18,9 @@ public record AssignExpr(
         var variableSymbol = (VariableSymbol) variable.accept(interpreter);
         var valueSymbol = value.accept(interpreter);
         if (valueSymbol instanceof VariableSymbol) {
-            valueSymbol = ((VariableSymbol) valueSymbol).getValue(interpreter);
+            valueSymbol = ((VariableSymbol) valueSymbol).getValue(interpreter, interpreter.getExecutionSource().getSource());
         }
-        variableSymbol.setValue(interpreter, valueSymbol);
+        variableSymbol.setValue(interpreter, interpreter.getExecutionSource().getSource(), valueSymbol);
         return variableSymbol;
     }
 }

@@ -20,7 +20,7 @@ public record MethodDecl(MethodIdentifier id, List<ParameterIdentifier> params, 
         return null;
     }
 
-    public Object invoke(Interpreter interpreter, Object... args) {
-        return interpreter.invokeMethod(this, args);
+    public Object invoke(Interpreter interpreter, Object obj, Object... args) {
+        return interpreter.invokeMethod(this, obj, args);
     }
 }

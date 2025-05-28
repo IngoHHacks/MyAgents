@@ -1,18 +1,19 @@
 package net.ingoh.myagents.lang.execution;
 
-import net.ingoh.myagents.core.CustomObject;
-import net.ingoh.myagents.lang.il.*;
-import net.ingoh.myagents.lang.symbols.*;
-
-import java.util.Dictionary;
 import java.util.Hashtable;
 import java.util.List;
 
+import net.ingoh.myagents.lang.DSLParser;
+import net.ingoh.myagents.lang.il.*;
+import net.ingoh.myagents.lang.symbols.*;
+import net.ingoh.myagents.utils.ClassHelper;
+
 public class Interpreter {
 
-    private Dictionary<String, ProgramFile> programFiles = new Hashtable<>();
-    private ExecutionSource executionSource;
+    private Hashtable<String, ProgramFile> programFiles = new Hashtable<>();
+    private ExecutionSource executionSource = new ExecutionSource(null);
     private ProgramFile currentProgramFile;
+    private Hashtable<Object, String> instances = new Hashtable<>();
 
     public Interpreter(List<ProgramDecl> sources) {
         for (var source : sources) {
@@ -22,10 +23,72 @@ public class Interpreter {
                 if (decl instanceof PackageDecl packageDecl) {
                     name = packageDecl.namespace().id();
                 } else if (decl instanceof OverrideBodyDecl overrideBodyDecl) {
+                    file.baseType = getType(overrideBodyDecl.type());
                     name = overrideBodyDecl.name();
+                    addBaseMethods(name, file, file.baseType);
+                    build(file, name, file.baseType);
+                    if (overrideBodyDecl.agents() != null) {
+                        file.symbolTable.addSymbol(this, SymbolType.FIELD, "agentTypes", new VariableSymbolImpl(this, "agentTypes", null, overrideBodyDecl.agents()));
+                        for (var agent : overrideBodyDecl.agents()) {
+                            file.symbolTable.addSymbol(this, SymbolType.NONLOCAL_CLASS, agent, new ImportedClassImpl(this, agent));
+                        }
+                    }
                 }
             }
             programFiles.put(name, file);
+        }
+    }
+
+    private Class<?> getType(String type) {
+        if (type == null) {
+            throw new IllegalArgumentException("TypeIdentifier cannot be null");
+        }
+        try {
+            return Class.forName("net.ingoh.myagents.core.basetypes." + type);
+        } catch (ClassNotFoundException e) {
+            throw new RuntimeException("Type not found: " + type, e);
+        }
+    }
+
+    private void addBaseMethods(String name, ProgramFile file, Class<?> type) {
+        if (type == null) {
+            return;
+        }
+        for (var method : type.getDeclaredMethods()) {
+            if (!file.symbolTable.methods.containsKey(method.getName())) {
+                file.symbolTable.addSymbol(this, SymbolType.METHOD, method.getName(), new MethodSymbolJava(method));
+            }
+        }
+        for (var field : type.getDeclaredFields()) {
+            if (!file.symbolTable.fields.containsKey(field.getName())) {
+                file.symbolTable.addSymbol(this, SymbolType.FIELD, field.getName(), new VariableSymbolJava(field));
+            }
+        }
+        for (var constructor : type.getDeclaredConstructors()) {
+            if (!file.symbolTable.constructors.containsKey(constructor.getName())) {
+                file.symbolTable.addSymbol(this, SymbolType.CONSTRUCTOR, constructor.getName(), new ConstructorSymbolJava(name, constructor, file.symbolTable));
+            }
+        }
+        for (var innerClass : type.getDeclaredClasses()) {
+            if (!file.symbolTable.classes.containsKey(innerClass.getSimpleName())) {
+                file.symbolTable.addSymbol(this, SymbolType.NONLOCAL_CLASS, innerClass.getSimpleName(), new ClassSymbolJava(innerClass));
+            }
+        }
+        if (type.getSuperclass() != null && !type.getSuperclass().getName().equals("java.lang.Object")) {
+            addBaseMethods(name, file, type.getSuperclass());
+        }
+        for (var iface : type.getInterfaces()) {
+            addBaseMethods(name, file, iface);
+        }
+    }
+
+    private void build(ProgramFile file, String name, Class<?> type) {
+        switch (type.getName()) {
+            case "net.ingoh.myagents.core.basetypes.Environment" -> {
+                file.symbolTable.addSymbol(this, SymbolType.METHOD, "main", new MethodSymbolImpl(
+                        ((MethodDecl)((OverrideBodyDecl) DSLParser.parse("main() {instance = new " + name + "(); return instance.run();}").topLevelDecls().get(0)).bodyDecls().get(0)))
+                );
+            }
         }
     }
 
@@ -35,10 +98,10 @@ public class Interpreter {
 
     private void runFile(ProgramFile program) {
         currentProgramFile = program;
-        if (currentProgramFile.symbolTable.hasSymbol(this, SymbolType.METHOD, "init")) {
-            var m = currentProgramFile.symbolTable.resolveMethod(this, "init");
+        if (currentProgramFile.symbolTable.hasSymbol(this, SymbolType.METHOD, "main")) {
+            var m = currentProgramFile.symbolTable.resolveMethod(this, "main");
             var code = invoke(ExecutionSource.STATIC, m);
-            System.out.println("Program exited with code: " + code);
+            System.out.println("Program started with code: " + code);
         }
     }
 
@@ -84,7 +147,7 @@ public class Interpreter {
         if (method == null) {
             throw new IllegalArgumentException("Method cannot be null");
         }
-        var result = method.invoke(this, args);
+        var result = method.invoke(this, executionSource.getSource(), args);
         executionSource = prevExecutionSource;
         return result;
     }
@@ -94,23 +157,20 @@ public class Interpreter {
         var tempExecutionSource = executionSource;
         String str;
         if (src instanceof ClassSymbol classSymbol) {
-            str = classSymbol.getNamepsace();
+            str = classSymbol.getNameSpace();
         } else {
-            if (src instanceof VariableSymbol variableSymbol) {
-                var obj = variableSymbol.getValue(this);
+            while (src instanceof VariableSymbol variableSymbol) {
+                var obj = variableSymbol.getValue(this, executionSource.getSource());
                 if (obj == null) {
                     throw new RuntimeException("Object is null: " + variableSymbol.getName());
                 }
                 src = obj;
             }
-            if (src instanceof CustomObject co) {
-                str = co.type.id();
-            } else {
-                str = src.getClass().getName();
-            }
+            str = src.getClass().getName();
         }
-        currentProgramFile = str != null ? resolveFile(str) : currentProgramFile;
+        str = ClassHelper.unproxy(src.getClass()).getName();
         executionSource = new ExecutionSource(src);
+        currentProgramFile = str != null ? resolveFile(str) : currentProgramFile;
         if (currentProgramFile == null) {
             throw new RuntimeException("File not found: " + src.getClass().getPackageName());
         }
@@ -157,7 +217,6 @@ public class Interpreter {
     }
 
     public void importFrom(ImportDecl importDecl) {
-        var prevFile = currentProgramFile;
         if (importDecl.isStatic()) {
             throw new RuntimeException("Static import not supported yet");
         } else {
@@ -174,13 +233,13 @@ public class Interpreter {
             }
         }
         if (currentProgramFile.symbolTable.constructors.size() == 0) {
-            var constructor = new ConstructorSymbolImpl(new ConstructorDecl(new TypeIdentifier(overrideBodyDecl.name()), List.of(), null));
+            var constructor = new ConstructorSymbolImpl(new ConstructorDecl(new TypeIdentifier(overrideBodyDecl.name()), new TypeIdentifier(overrideBodyDecl.type()), List.of(), null), currentProgramFile.symbolTable);
             currentProgramFile.symbolTable.addSymbol(this, SymbolType.CONSTRUCTOR, overrideBodyDecl.name(), constructor);
         }
     }
 
     public void classDecl(ClassDecl classDecl) {
-        currentProgramFile.symbolTable.addSymbol(this, SymbolType.NONLOCAL_CLASS, classDecl.id().id(), new ClassSymbolImpl(classDecl));
+        currentProgramFile.symbolTable.addSymbol(this, SymbolType.NONLOCAL_CLASS, classDecl.id().id(), new ClassSymbolImpl(this, classDecl));
     }
 
     public void methodDecl(MethodDecl methodDecl) {
@@ -188,21 +247,21 @@ public class Interpreter {
     }
 
     public void fieldDecl(FieldDecl fieldDecl) {
-        currentProgramFile.symbolTable.addSymbol(this, SymbolType.FIELD, fieldDecl.id().id(), new VariableSymbolImpl(this, fieldDecl.id().id(), visitExpr(fieldDecl.expr())));
+        currentProgramFile.symbolTable.addSymbol(this, SymbolType.FIELD, fieldDecl.id().id(), new VariableSymbolImpl(this, fieldDecl.id().id(), executionSource.getSource(), visitExpr(fieldDecl.expr())));
     }
 
     public void constructorDecl(ConstructorDecl constructorDecl) {
         currentProgramFile.symbolTable.addSymbol(this, SymbolType.CONSTRUCTOR, String.join(",", constructorDecl.params().stream()
                 .map(ParameterIdentifier::id)
-                .toList()), new ConstructorSymbolImpl(constructorDecl));
+                .toList()), new ConstructorSymbolImpl(constructorDecl, currentProgramFile.symbolTable));
     }
 
     public void localVariableDecl(LocalVariableDecl localVariableDecl) {
-        currentProgramFile.symbolTable.addSymbol(this, SymbolType.LOCAL_VARIABLE, localVariableDecl.id().id(), new VariableSymbolImpl(this, localVariableDecl.id().id(), visitExpr(localVariableDecl.expr())));
+        currentProgramFile.symbolTable.addSymbol(this, SymbolType.LOCAL_VARIABLE, localVariableDecl.id().id(), new VariableSymbolImpl(this, localVariableDecl.id().id(), executionSource.getSource(), visitExpr(localVariableDecl.expr())));
     }
 
     public void localClassDecl(LocalClassDecl localClassDecl) {
-        currentProgramFile.symbolTable.addSymbol(this, SymbolType.LOCAL_CLASS, localClassDecl.classDecl().id().id(), new ClassSymbolImpl(localClassDecl.classDecl()));
+        currentProgramFile.symbolTable.addSymbol(this, SymbolType.LOCAL_CLASS, localClassDecl.classDecl().id().id(), new ClassSymbolImpl(this, localClassDecl.classDecl()));
     }
 
     public Symbol getSymbol(SymbolType type, String id) {
@@ -213,16 +272,28 @@ public class Interpreter {
         return currentProgramFile.symbolTable.getSymbol(this, SymbolType.ANY, id);
     }
 
-    public Object invokeMethod(MethodDecl methodDecl, Object[] args) {
+    public Object invokeMethod(MethodDecl methodDecl, Object obj, Object[] args) {
         if (args.length != methodDecl.params().size()) {
             throw new IllegalArgumentException("Invalid number of arguments. Expected: " + methodDecl.params().size() + ", got: " + args.length);
+        }
+        var tempProgramFile = currentProgramFile;
+        if (obj != null) {
+            var myFile = whatsMyFile(obj);
+            if (myFile != null) {
+                currentProgramFile = myFile;
+            }
         }
         List<ParameterIdentifier> params = methodDecl.params();
         for (int i = 0; i < params.size(); i++) {
             var param = params.get(i);
-            currentProgramFile.symbolTable.addSymbol(this, SymbolType.PARAMETER, param.id(), new VariableSymbolImpl(this, param.id(), args[i]));
+            currentProgramFile.symbolTable.addSymbol(this, SymbolType.PARAMETER, param.id(), new VariableSymbolImpl(this, param.id(), obj, args[i]));
         }
-        return methodDecl.body().accept(this);
+        var tempExecutionSource = executionSource;
+        executionSource = new ExecutionSource(obj);
+        var result = methodDecl.body().accept(this);
+        executionSource = tempExecutionSource;
+        currentProgramFile = tempProgramFile;
+        return result;
     }
 
     public Object visitExpr(Expr expr) {
@@ -233,13 +304,30 @@ public class Interpreter {
     }
 
     public Object memberRefExpr(Object refValue, Object memberValue) {
-        // TODO
-        throw new UnsupportedOperationException("Member reference expression not implemented yet");
+        return new AnyMemberIdentifier(memberValue.toString());
     }
 
     public Object memberAccessExpr(Object targetValue, Object memberValue) {
-        // TODO
-        throw new UnsupportedOperationException("Member access expression not implemented yet");
+        if (targetValue == null) {
+            throw new RuntimeException("Target value is null for member access: " + memberValue);
+        }
+        if (memberValue == null) {
+            throw new RuntimeException("Member value is null for member access");
+        }
+        while (targetValue instanceof VariableSymbol variableSymbol) {
+            targetValue = variableSymbol.getValue(this, executionSource.getSource());
+        }
+        var file = whatsMyFile(targetValue);
+        if (file != null && file.symbolTable.hasSymbol(this, SymbolType.FIELD, memberValue.toString())) {
+            return ((VariableSymbol) file.symbolTable.getSymbol(this, SymbolType.FIELD, memberValue.toString())).getValue(this, targetValue);
+        }
+        try {
+            return targetValue.getClass().getField(memberValue.toString()).get(targetValue);
+        } catch (NoSuchFieldException e) {
+            throw new RuntimeException("Field not found: " + memberValue + " in " + targetValue.getClass().getName(), e);
+        } catch (IllegalAccessException e) {
+            throw new RuntimeException("Cannot access field: " + memberValue + " in " + targetValue.getClass().getName(), e);
+        }
     }
 
     ////////////////////////////////////////////
@@ -254,5 +342,36 @@ public class Interpreter {
         } else {
             this.executionSource = new ExecutionSource(obj);
         }
+        while (executionSource.getSource() instanceof ExecutionSource) {
+            executionSource = (ExecutionSource) executionSource.getSource();
+        }
+    }
+
+    public Class<?> coreClassOf(TypeIdentifier type) {
+        return getType(type.id());
+    }
+
+    public Object transformVars(Interpreter interpreter, Object o) {
+        if (o instanceof VariableSymbol variableSymbol) {
+            return variableSymbol.getValue(interpreter, executionSource.getSource());
+        } else if (o instanceof CallableSymbol callableSymbol) {
+            return callableSymbol.getName();
+        }else if (o instanceof ClassSymbol classSymbol) {
+            return classSymbol.getFullName();
+        } else if (o instanceof Class<?> cls) {
+            return cls.getName();
+        }
+        return o;
+    }
+
+    public void addInstance(Object obj, String id) {
+        instances.put(obj, id);
+    }
+
+    private ProgramFile whatsMyFile(Object obj) {
+        if (instances.containsKey(obj) && programFiles.containsKey(instances.get(obj))) {
+            return programFiles.get(instances.get(obj));
+        }
+        return null;
     }
 }

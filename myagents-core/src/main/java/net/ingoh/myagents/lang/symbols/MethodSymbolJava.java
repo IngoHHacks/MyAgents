@@ -1,6 +1,9 @@
 package net.ingoh.myagents.lang.symbols;
 
 import net.ingoh.myagents.lang.execution.Interpreter;
+import net.ingoh.myagents.utils.ClassHelper;
+import net.ingoh.myagents.utils.MethodFinder;
+import net.ingoh.myagents.utils.MethodHelper;
 
 import java.lang.reflect.Method;
 import java.lang.reflect.Parameter;
@@ -34,9 +37,33 @@ public class MethodSymbolJava implements MethodSymbol {
     }
 
     @Override
-    public Object invoke(Interpreter interpreter, Object... args) {
+    public Object invoke(Interpreter interpreter, Object objOvr, Object... args) {
         try {
-            return src.invoke(obj != null ? obj : interpreter.getExecutionSource().getSource(), args);
+            if (obj != null) {
+                objOvr = obj;
+            }
+            while (objOvr instanceof VariableSymbol) {
+                objOvr = ((VariableSymbol) objOvr).getValue(interpreter, interpreter.getExecutionSource().getSource());
+            }
+            Class<?> cls;
+            if (objOvr instanceof Class<?>) {
+                cls = (Class<?>) objOvr;
+            } else {
+                cls = objOvr.getClass();
+            }
+            var instance = (objOvr != null ? objOvr : interpreter.getExecutionSource().getSource());
+            var method = MethodFinder.findCompatibleMethod(
+                    cls,
+                    getName(),
+                    args != null ? Stream.of(args)
+                            .map(Object::getClass)
+                            .map(ClassHelper::unproxy)
+                            .toArray(Class[]::new) : new Class[0]);
+            if (method == null) {
+                throw new NoSuchMethodException("No compatible method found: " + getName());
+            }
+            args = MethodHelper.castArgs(method, args);
+            return method.invoke(instance, args);
         } catch (Exception e) {
             throw new RuntimeException("Failed to invoke method: " + getName(), e);
         }

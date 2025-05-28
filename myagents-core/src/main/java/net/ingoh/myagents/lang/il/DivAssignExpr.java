@@ -18,9 +18,9 @@ public record DivAssignExpr(
         var variableSymbol = (VariableSymbol) left.accept(interpreter);
         var valueSymbol = right.accept(interpreter);
         if (valueSymbol instanceof VariableSymbol) {
-            valueSymbol = ((VariableSymbol) valueSymbol).getValue(interpreter, Number.class);
+            valueSymbol = ((VariableSymbol) valueSymbol).getValue(interpreter, interpreter.getExecutionSource().getSource(), Number.class);
         }
-        variableSymbol.setValue(interpreter, variableSymbol.getValue(interpreter, Number.class).doubleValue() / ((Number) valueSymbol).doubleValue());
+        variableSymbol.setValue(interpreter, interpreter.getExecutionSource().getSource(), variableSymbol.getValue(interpreter, interpreter.getExecutionSource().getSource(), Number.class).doubleValue() / ((Number) valueSymbol).doubleValue());
         return variableSymbol;
     }
 }

@@ -13,11 +13,16 @@ import java.util.List;
 
 public class Main {
     public static void main(String[] args) {
-        var examples = new String[]{
-                "examples/environment.yenv",
-                "examples/agent1.yage",
-                "examples/agent2.yage",
-        };
+        var exampleDir = "examples/cars/";
+        var examples = new LinkedList<String>();
+        for (var file : Path.of(exampleDir).toFile().listFiles()) {
+            if (file.isFile() && file.getName().endsWith(".yage")) {
+                examples.add(file.getAbsolutePath());
+            }
+            if (file.getName().endsWith(".yenv")) {
+                examples.add(0, file.getAbsolutePath());
+            }
+        }
         ILConverter.clean();
         List<ProgramDecl> programDecls = new LinkedList<>();
         try {
@@ -28,7 +33,7 @@ public class Main {
                 programDecls.add(program);
             }
             Interpreter interpreter = new Interpreter(programDecls);
-            interpreter.run(interpreter.resolveFile("MyEnv"));
+            interpreter.run(interpreter.resolveFile("CarsEnv"));
         } catch (Exception e) {
             e.printStackTrace();
         }

@@ -1,10 +1,7 @@
 package net.ingoh.myagents.core;
 
-import net.ingoh.myagents.lang.internal.AgentBaseVisitor;
-import net.ingoh.myagents.lang.visitors.MyAgentsVisitorImpl;
-import org.antlr.v4.runtime.Lexer;
-import org.antlr.v4.runtime.Parser;
-import org.antlr.v4.runtime.tree.AbstractParseTreeVisitor;
+import net.ingoh.myagents.core.basetypes.Agent;
+import net.ingoh.myagents.core.basetypes.Environment;
 
 public class DataType {
     public static final int TYPE_UNKNOWN = -1;

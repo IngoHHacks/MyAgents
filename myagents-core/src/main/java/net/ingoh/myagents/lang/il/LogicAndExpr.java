@@ -18,10 +18,10 @@ public record LogicAndExpr(
         var leftValue = left.accept(interpreter);
         var rightValue = right.accept(interpreter);
         if (leftValue instanceof VariableSymbol) {
-            leftValue = ((VariableSymbol) leftValue).getValue(interpreter, Boolean.class);
+            leftValue = ((VariableSymbol) leftValue).getValue(interpreter, interpreter.getExecutionSource().getSource(), Boolean.class);
         }
         if (rightValue instanceof VariableSymbol) {
-            rightValue = ((VariableSymbol) rightValue).getValue(interpreter, Boolean.class);
+            rightValue = ((VariableSymbol) rightValue).getValue(interpreter, interpreter.getExecutionSource().getSource(), Boolean.class);
         }
         if (leftValue instanceof Boolean && rightValue instanceof Boolean) {
             return (Boolean) leftValue && (Boolean) rightValue;

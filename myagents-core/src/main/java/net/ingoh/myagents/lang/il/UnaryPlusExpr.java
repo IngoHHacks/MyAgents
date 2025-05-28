@@ -16,7 +16,7 @@ public record UnaryPlusExpr(
     @Override
     public Object accept(Interpreter interpreter) {
         var value = (VariableSymbol) expr.accept(interpreter);
-        value.setValue(interpreter, value.getValue(interpreter, long.class));
+        value.setValue(interpreter, interpreter.getExecutionSource().getSource(), value.getValue(interpreter, long.class));
         return value;
     }
 }

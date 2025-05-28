@@ -25,8 +25,8 @@ public record ObjectCreationExpr(
         var constructor = interpreter.resolveConstructor(type, args);
         var argObjs = args.exprs().stream()
                 .map(arg -> arg.accept(interpreter))
-                .toList();
-        var obj = constructor.invoke(interpreter, argObjs);
+                .toArray();
+        var obj = constructor.invoke(interpreter, null, argObjs);
         if (classBody != null && classBody.size() > 0)
         {
             throw new UnsupportedOperationException("Class body is not supported yet");

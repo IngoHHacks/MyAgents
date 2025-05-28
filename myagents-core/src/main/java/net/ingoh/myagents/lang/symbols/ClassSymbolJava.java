@@ -13,7 +13,7 @@ public class ClassSymbolJava implements ClassSymbol {
     }
 
     @Override
-    public String getNamepsace() {
+    public String getNameSpace() {
         return src.getPackageName();
     }
 }

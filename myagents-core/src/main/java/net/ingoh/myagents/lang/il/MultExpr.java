@@ -18,10 +18,10 @@ public record MultExpr(
         var leftValue = left.accept(interpreter);
         var rightValue = right.accept(interpreter);
         if (leftValue instanceof VariableSymbol) {
-            leftValue = ((VariableSymbol) leftValue).getValue(interpreter, Number.class);
+            leftValue = ((VariableSymbol) leftValue).getValue(interpreter, interpreter.getExecutionSource().getSource(), Number.class);
         }
         if (rightValue instanceof VariableSymbol) {
-            rightValue = ((VariableSymbol) rightValue).getValue(interpreter, Number.class);
+            rightValue = ((VariableSymbol) rightValue).getValue(interpreter, interpreter.getExecutionSource().getSource(), Number.class);
         }
         if (leftValue instanceof Number && rightValue instanceof Number) {
             return ((Number) leftValue).doubleValue() * ((Number) rightValue).doubleValue();

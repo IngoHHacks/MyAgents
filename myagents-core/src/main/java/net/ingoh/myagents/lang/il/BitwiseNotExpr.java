@@ -15,7 +15,7 @@ public record BitwiseNotExpr(
     @Override
     public Object accept(Interpreter interpreter) {
         var value = (VariableSymbol) expr.accept(interpreter);
-        value.setValue(interpreter, ~value.getValue(interpreter, Number.class).longValue());
+        value.setValue(interpreter, interpreter.getExecutionSource().getSource(), ~value.getValue(interpreter, interpreter.getExecutionSource().getSource(), Number.class).longValue());
         return value;
     }
 }

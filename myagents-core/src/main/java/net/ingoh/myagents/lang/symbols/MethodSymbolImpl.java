@@ -25,7 +25,7 @@ public class MethodSymbolImpl implements MethodSymbol {
     }
 
     @Override
-    public Object invoke(Interpreter interpreter, Object... args) {
-        return methodDecl.invoke(interpreter, args);
+    public Object invoke(Interpreter interpreter, Object obj, Object... args) {
+        return methodDecl.invoke(interpreter, obj, args);
     }
 }
