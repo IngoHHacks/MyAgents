@@ -1,7 +1,12 @@
 package net.ingoh.myagents.core.basetypes;
 
+import net.ingoh.myagents.core.actions.AddAgentAction;
+import net.ingoh.myagents.core.actions.RemoveAgentAction;
+import net.ingoh.myagents.core.actions.ScheduledEnvAction;
+import net.ingoh.myagents.core.communication.MessageMeta;
 import net.ingoh.myagents.lang.execution.Interpreter;
 import net.ingoh.myagents.lang.il.TypeIdentifier;
+import net.ingoh.myagents.utils.ThreadSafeList;
 
 import javax.swing.*;
 import java.awt.*;
@@ -11,16 +16,22 @@ import java.util.List;
 
 public class Environment extends MyAgentsClassBase {
     public double tickRate;
-    public List<String> agentTypes;
-    public List<Agent> agents;
+    public ThreadSafeList<String> agentTypes;
+    public ThreadSafeList<Agent> agents;
     public Hashtable<String, List<Agent>> agentTypeMap;
     public int width;
     public int height;
+    public boolean wrap = false;
+
+    public Color color = Color.BLACK;
+
+    private boolean __ticking = false;
+    private List<ScheduledEnvAction> scheduledActions = new LinkedList<>();
 
     public Environment(Interpreter interpreter) {
         super(interpreter);
-        this.agentTypes = new LinkedList<>();
-        this.agents = new LinkedList<>();
+        this.agentTypes = new ThreadSafeList<>();
+        this.agents = new ThreadSafeList<>();
         this.agentTypeMap = new Hashtable<>();
     }
 
@@ -41,14 +52,30 @@ public class Environment extends MyAgentsClassBase {
                 } catch (InterruptedException e) {
                     e.printStackTrace();
                 }
+                __ticking = true;
                 var dt = System.currentTimeMillis() - time;
                 time += dt;
                 eTime += sleepTime;
                 excess = time - eTime;
-                for (Agent agent : agents) {
+                var tempExecutionSource = interpreter.getExecutionSource();
+                for (int i = 0; i < agents.size(); i++) {
+                    Agent agent = agents.get(i);
+                    interpreter.setExecutionSource(agent);
                     if (!agent.tick(dt / 1000.0)) {
                         destroy(agent);
                     }
+                }
+                interpreter.setExecutionSource(tempExecutionSource);
+                __ticking = false;
+                if (!scheduledActions.isEmpty()) {
+                    for (ScheduledEnvAction action : scheduledActions) {
+                        if (action instanceof AddAgentAction addAction) {
+                            create(addAction.agentType, addAction.x, addAction.y);
+                        } else if (action instanceof RemoveAgentAction removeAction) {
+                            destroy(removeAction.agent);
+                        }
+                    }
+                    scheduledActions.clear();
                 }
             }
         });
@@ -61,20 +88,35 @@ public class Environment extends MyAgentsClassBase {
         frame.setTitle("MyAgents Environment");
         frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         frame.setSize(width, height);
-        frame.setResizable(false);
         frame.setLocationRelativeTo(null);
-        frame.setVisible(true);
+        frame.setLayout(new BorderLayout());
+        Container contentPane = frame.getContentPane();
+        JPanel centerer = new JPanel(new BorderLayout());
+        contentPane.add(centerer, BorderLayout.CENTER);
+        centerer.setPreferredSize(new Dimension(width, height));
         JPanel panel = new JPanel() {
             @Override
             protected void paintComponent(Graphics g) {
                 super.paintComponent(g);
-                for (Agent agent : agents) {
-                    agent.render(g);
+                var sx = getWidth() / (double) width;
+                var sy = getHeight() / (double) height;
+                var scale = Math.min(sx, sy);
+                var dx = 0;
+                var dy = 0;
+                if (sx < sy) {
+                    dy = (int) ((getHeight() - height * scale) / 2);
+                } else {
+                    dx = (int) ((getWidth() - width * scale) / 2);
+                }
+                for (int i = 0; i < agents.size(); i++) {
+                    Agent agent = agents.get(i);
+                    agent.render(g, dx, dy, scale);
                 }
             }
         };
         panel.setPreferredSize(new Dimension(width, height));
-        frame.add(panel);
+        panel.setBackground(color);
+        centerer.add(panel, BorderLayout.CENTER);
         frame.pack();
         frame.setVisible(true);
         Timer timer = new Timer(1000 / 60, e -> {
@@ -93,6 +135,10 @@ public class Environment extends MyAgentsClassBase {
     }
 
     public boolean create(String agent, Number x, Number y) {
+        if (__ticking) {
+            scheduledActions.add(new AddAgentAction(agent, x, y));
+            return true;
+        }
         try {
             if (!agentTypeMap.containsKey(agent)) {
                 agentTypeMap.put(agent, new LinkedList<>());
@@ -103,6 +149,7 @@ public class Environment extends MyAgentsClassBase {
                     .invoke(interpreter, null, this, id, x, y);
             agents.add(instance);
             list.add(instance);
+            instance.__type = agent;
             return true;
         } catch (Exception e) {
             e.printStackTrace();
@@ -111,17 +158,21 @@ public class Environment extends MyAgentsClassBase {
     }
 
     public boolean destroy(Agent agent) {
+        if (__ticking) {
+            scheduledActions.add(new RemoveAgentAction(agent));
+            return true;
+        }
         if (agents.remove(agent)) {
-            Class<? extends Agent> agentType = agent.getClass();
+            var agentType = agent.__type;
             List<Agent> list = agentTypeMap.get(agentType);
             if (list != null) {
                 list.remove(agent);
                 if (list.isEmpty()) {
                     agentTypeMap.remove(agentType);
                 }
-                for (int i = 0; i < agents.size(); i++) {
-                    if (agents.get(i).id > agent.id) {
-                        agents.get(i).id--;
+                for (var listAgent : list) {
+                    if (listAgent.id > agent.id) {
+                        listAgent.id--;
                     }
                 }
             }
@@ -152,23 +203,45 @@ public class Environment extends MyAgentsClassBase {
         return 0;
     }
 
-    public double distance(Agent a, Agent b) {
-        return distance(a, b, false);
+    public Agent nearestAgent(Agent a, String agentType) {
+        if (a == null || agentType == null) {
+            throw new IllegalArgumentException("Agent and agent type cannot be null");
+        }
+        List<Agent> agents = getAgents(agentType);
+        if (agents.isEmpty()) {
+            return null;
+        }
+        Agent nearest = null;
+        double minDistance = Double.MAX_VALUE;
+        for (Agent b : agents) {
+            if (b == a) continue; // Skip the agent itself
+            double dist = a.distanceTo(b).length();
+            if (dist < minDistance) {
+                minDistance = dist;
+                nearest = b;
+            }
+        }
+        return nearest;
     }
 
-    public double distance(Agent a, Agent b, boolean wrap) {
-        if (a == null || b == null) {
-            throw new IllegalArgumentException("Agents cannot be null");
+    public boolean sendMessage(Agent agent, List<Agent> who, String message) {
+        var meta = new MessageMeta(agent, who, message);
+        for (Agent recipient : who) {
+            if (recipient != null && agents.contains(recipient)) {
+                recipient.receiveMessage(message, meta);
+            }
         }
-        double dx = a.x - b.x;
-        double dy = a.y - b.y;
-        if (wrap)
-        {
-            if (dx > width / 2.0) dx -= width;
-            else if (dx < -width / 2.0) dx += width;
-            if (dy > height / 2.0) dy -= height;
-            else if (dy < -height / 2.0) dy += height;
+        return true;
+    }
+
+    public boolean sendMessageToAll(Agent agent, String message) {
+        var meta = new MessageMeta(agent, agents.toList(), message);
+        for (int i = 0; i < agents.size(); i++) {
+            Agent recipient = agents.get(i);
+            if (recipient != null && recipient != agent) {
+                recipient.receiveMessage(message, meta);
+            }
         }
-        return Math.sqrt(dx * dx + dy * dy);
+        return true;
     }
 }

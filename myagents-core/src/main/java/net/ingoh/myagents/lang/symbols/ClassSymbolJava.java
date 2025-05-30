@@ -7,6 +7,10 @@ public class ClassSymbolJava implements ClassSymbol {
         this.src = src;
     }
 
+    public Class<?> getSrc() {
+        return src;
+    }
+
     @Override
     public String getName() {
         return src.getSimpleName();

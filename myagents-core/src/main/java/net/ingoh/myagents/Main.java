@@ -13,7 +13,7 @@ import java.util.List;
 
 public class Main {
     public static void main(String[] args) {
-        var exampleDir = "examples/cars/";
+        var exampleDir = "examples/predator-prey/";
         var examples = new LinkedList<String>();
         for (var file : Path.of(exampleDir).toFile().listFiles()) {
             if (file.isFile() && file.getName().endsWith(".yage")) {
@@ -33,7 +33,7 @@ public class Main {
                 programDecls.add(program);
             }
             Interpreter interpreter = new Interpreter(programDecls);
-            interpreter.run(interpreter.resolveFile("CarsEnv"));
+            interpreter.run(interpreter.resolveFile("PredatorPreyEnv"));
         } catch (Exception e) {
             e.printStackTrace();
         }

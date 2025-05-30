@@ -1,0 +1,58 @@
+type Agent;
+name Sheep;
+
+color = Color.WHITE;
+size 20;
+
+// Sheep are prey for wolves and can be eaten by them.
+// When touching another sheep, they can reproduce.
+// Sheep do not have energy and only die when they are eaten.
+
+REPRODUCE_PROBABILITY 0.5;
+REPRODUCE_DELAY 1;
+
+targetX = -1;
+targetY = -1;
+reproduceDelay = 1;
+
+tick(dt) {
+    text = id;
+    // Go to a random position
+    if (targetX == -1 || targetY == -1 || (distanceTo(targetX, targetY).length() < 10)) {
+        targetX = rnd() * env.width;
+        targetY = rnd() * env.height;
+    }
+    moveTowards(targetX, targetY, 200 * dt);
+
+    // Reproduce if conditions are met
+    other = env.nearestAgent(this, Sheep);
+    if (other != null && reproduceDelay == 0 && id > other.id && distanceTo(other).length() < size) {
+        if (rnd() < REPRODUCE_PROBABILITY) {
+            reproduce();
+            tell("reproduced", other);
+        }
+        addDelay();
+    }
+
+    // Decrease the delay for reproduction
+    if (reproduceDelay > 0) {
+        reproduceDelay = max(0, reproduceDelay - dt);
+    }
+
+    return true;
+}
+
+hear(message, info) {
+    if (message == "reproduced") {
+        addDelay();
+    }
+    return true;
+}
+
+reproduce() {
+    env.create(Sheep, this.x, this.y);
+}
+
+addDelay() {
+    reproduceDelay = REPRODUCE_DELAY;
+}

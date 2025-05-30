@@ -20,7 +20,7 @@ public record MinusAssignExpr(
         if (valueSymbol instanceof VariableSymbol) {
             valueSymbol = ((VariableSymbol) valueSymbol).getValue(interpreter, interpreter.getExecutionSource().getSource(), Number.class);
         }
-        variableSymbol.changeValueBy(interpreter, interpreter.getExecutionSource().getSource(), (Number) valueSymbol);
+        variableSymbol.changeValueBy(interpreter, interpreter.getExecutionSource().getSource(), -((Number) valueSymbol).doubleValue());
         return variableSymbol;
     }
 }

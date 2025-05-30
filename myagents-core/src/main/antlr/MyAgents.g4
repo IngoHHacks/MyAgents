@@ -163,7 +163,13 @@ methodBody: block | SEMICOLON;
 
 constructorDecl: id LPAREN paramList? RPAREN constructorBody = block;
 
-fieldDecl: id {!_input.LT(1).getText().matches("[\\{\\[\\(\\)]")}? id* ASSIGN? expr? SEMICOLON;
+fieldDecl: id+ ASSIGN expr? SEMICOLON
+    | id+ ASSIGN? literal
+    ;
+
+localVariableDecl: id+ ASSIGN expr
+    | id+ ASSIGN? literal
+    ;
 
 variableDecls
     : variableDecl (COMMA variableDecl)*
@@ -195,8 +201,6 @@ literal: INT_LITERAL | FLOAT_LITERAL | BOOL_LITERAL | CHAR_LITERAL | STRING_LITE
 block: LBRACE blockStmt* RBRACE;
 
 blockStmt: localVariableDecl SEMICOLON | localClassDecl | stmt;
-
-localVariableDecl: id ~(LBRACE | LBRACK | LPAREN | DOT) id* ASSIGN? expr;
 
 localClassDecl: classDecl;
 
@@ -374,4 +378,7 @@ overrideTypeDecl: 'type' id;
 
 overrideNameDecl: 'name' id;
 
-agentsDecl: 'agents' (LBRACE? id* RBRACE?)?;
+agentsDecl: 'agents' LBRACE id* RBRACE
+    | 'agents' id+
+    | 'agents'
+    ;

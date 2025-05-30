@@ -1,6 +1,7 @@
 package net.ingoh.myagents.lang.symbols;
 
 import net.ingoh.myagents.lang.execution.Interpreter;
+import net.ingoh.myagents.utils.ClassHelper;
 
 import java.lang.reflect.Field;
 
@@ -50,11 +51,14 @@ public class VariableSymbolJava implements VariableSymbol {
     @Override
     public void setValue(Interpreter interpreter, Object object, Object value) {
         try {
+            while (value instanceof VariableSymbol) {
+                value = ((VariableSymbol) value).getValue(interpreter, object);
+            }
             if (object == null) {
                 staticValue = value;
                 return;
             }
-            src.set(object, value);
+            src.set(object, ClassHelper.cast(value, src.getType()));
         } catch (IllegalAccessException e) {
             throw new RuntimeException("Failed to set field value", e);
         }

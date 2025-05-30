@@ -14,6 +14,7 @@ public class Interpreter {
     private ExecutionSource executionSource = new ExecutionSource(null);
     private ProgramFile currentProgramFile;
     private Hashtable<Object, String> instances = new Hashtable<>();
+    private SymbolTable globals = new SymbolTable(this, true);
 
     public Interpreter(List<ProgramDecl> sources) {
         for (var source : sources) {
@@ -30,6 +31,7 @@ public class Interpreter {
                     if (overrideBodyDecl.agents() != null) {
                         file.symbolTable.addSymbol(this, SymbolType.FIELD, "agentTypes", new VariableSymbolImpl(this, "agentTypes", null, overrideBodyDecl.agents()));
                         for (var agent : overrideBodyDecl.agents()) {
+                            globals.addSymbol(this, SymbolType.NONLOCAL_CLASS, agent, new ImportedClassImpl(this, agent));
                             file.symbolTable.addSymbol(this, SymbolType.NONLOCAL_CLASS, agent, new ImportedClassImpl(this, agent));
                         }
                     }
@@ -106,7 +108,7 @@ public class Interpreter {
     }
 
     private ProgramFile parseFile(ProgramDecl program) {
-        currentProgramFile = new ProgramFile();
+        currentProgramFile = new ProgramFile(this);
         for (var decl : program.topLevelDecls()) {
             decl.accept(this);
         }
@@ -134,9 +136,12 @@ public class Interpreter {
     public Object runBlock(List<BlockStmt> statements) {
         for (var stmt : statements) {
             if (stmt instanceof ReturnStmt) {
-                return stmt.accept(this);
+                return new ReturnVal(stmt.accept(this));
             }
-            stmt.accept(this);
+            var r = stmt.accept(this);
+            if (r != null && r instanceof ReturnVal returnVal) {
+                return returnVal;
+            }
         }
         return null;
     }
@@ -317,6 +322,9 @@ public class Interpreter {
         while (targetValue instanceof VariableSymbol variableSymbol) {
             targetValue = variableSymbol.getValue(this, executionSource.getSource());
         }
+        if (targetValue instanceof ClassSymbol classSymbol) {
+            return staticMemberAccessExpr(classSymbol, memberValue);
+        }
         var file = whatsMyFile(targetValue);
         if (file != null && file.symbolTable.hasSymbol(this, SymbolType.FIELD, memberValue.toString())) {
             return ((VariableSymbol) file.symbolTable.getSymbol(this, SymbolType.FIELD, memberValue.toString())).getValue(this, targetValue);
@@ -328,6 +336,45 @@ public class Interpreter {
         } catch (IllegalAccessException e) {
             throw new RuntimeException("Cannot access field: " + memberValue + " in " + targetValue.getClass().getName(), e);
         }
+    }
+
+    public Object staticMemberAccessExpr(ClassSymbol classSymbol, Object memberValue) {
+        if (classSymbol == null || memberValue == null) {
+            throw new IllegalArgumentException("Class symbol and member value cannot be null");
+        }
+        if (classSymbol instanceof ImportedClassImpl importedClass) {
+            classSymbol = importedClass.resolve();
+        }
+        if (classSymbol instanceof ClassSymbolImpl classSymbolImpl) {
+            var cls = classSymbolImpl.getClassDecl().id().id();
+            var file = whatsMyFile(cls);
+            if (file == null) {
+                throw new RuntimeException("File not found for class: " + cls);
+            }
+            if (file.symbolTable.hasSymbol(this, SymbolType.FIELD, memberValue.toString())) {
+                return ((VariableSymbol) file.symbolTable.getSymbol(this, SymbolType.FIELD, memberValue.toString())).getValue(this, null);
+            }
+            try {
+                return Class.forName(cls).getField(memberValue.toString()).get(null);
+            } catch (NoSuchFieldException e) {
+                throw new RuntimeException("Static field not found: " + memberValue + " in " + cls, e);
+            } catch (IllegalAccessException e) {
+                throw new RuntimeException("Cannot access static field: " + memberValue + " in " + cls, e);
+            } catch (ClassNotFoundException e) {
+                throw new RuntimeException("Class not found: " + cls, e);
+            }
+        }
+        else if (classSymbol instanceof ClassSymbolJava classSymbolJava) {
+            var cls = classSymbolJava.getSrc();
+            try {
+                return cls.getField(memberValue.toString()).get(null);
+            } catch (NoSuchFieldException e) {
+                throw new RuntimeException("Static field not found: " + memberValue + " in " + cls.getName(), e);
+            } catch (IllegalAccessException e) {
+                throw new RuntimeException("Cannot access static field: " + memberValue + " in " + cls.getName(), e);
+            }
+        }
+        throw new IllegalArgumentException("Invalid class symbol: " + classSymbol);
     }
 
     ////////////////////////////////////////////
@@ -373,5 +420,17 @@ public class Interpreter {
             return programFiles.get(instances.get(obj));
         }
         return null;
+    }
+
+    public ProgramFile getCurrentFile() {
+        return currentProgramFile;
+    }
+
+    public void setCurrentFile(ProgramFile file) {
+        this.currentProgramFile = file;
+    }
+
+    public SymbolTable getGlobals() {
+        return globals;
     }
 }

@@ -18,10 +18,13 @@ public record EqualityExpr(
         var leftValue = left.accept(interpreter);
         var rightValue = right.accept(interpreter);
         if (leftValue instanceof VariableSymbol) {
-            leftValue = ((VariableSymbol) leftValue).getValue(interpreter, interpreter.getExecutionSource().getSource(), Number.class);
+            leftValue = ((VariableSymbol) leftValue).getValue(interpreter, interpreter.getExecutionSource().getSource());
         }
         if (rightValue instanceof VariableSymbol) {
-            rightValue = ((VariableSymbol) rightValue).getValue(interpreter, interpreter.getExecutionSource().getSource(), Number.class);
+            rightValue = ((VariableSymbol) rightValue).getValue(interpreter, interpreter.getExecutionSource().getSource());
+        }
+        if (leftValue == null || rightValue == null) {
+            return leftValue != rightValue;
         }
         if (leftValue instanceof Number && rightValue instanceof Number) {
             return ((Number) leftValue).doubleValue() == ((Number) rightValue).doubleValue();

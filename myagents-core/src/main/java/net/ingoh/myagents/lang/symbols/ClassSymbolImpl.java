@@ -27,4 +27,8 @@ public class ClassSymbolImpl implements ClassSymbol {
     public String getNameSpace() {
         return classDecl.id().getNamespace().id();
     }
+
+    public ClassDecl getClassDecl() {
+        return classDecl;
+    }
 }

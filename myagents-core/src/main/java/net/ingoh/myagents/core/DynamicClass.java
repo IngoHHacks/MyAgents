@@ -2,6 +2,7 @@ package net.ingoh.myagents.core;
 
 import net.bytebuddy.implementation.bind.annotation.*;
 import net.ingoh.myagents.lang.execution.Interpreter;
+import net.ingoh.myagents.lang.execution.ReturnVal;
 import net.ingoh.myagents.lang.symbols.CallableSymbol;
 import net.ingoh.myagents.lang.symbols.MethodSymbol;
 import net.ingoh.myagents.lang.symbols.MethodSymbolImpl;
@@ -49,13 +50,19 @@ public class DynamicClass {
     @RuntimeType
     public Object intercept(@SuperCall Callable<?> superCall, @Origin Method method, @This Object instance, @AllArguments Object[] args) throws Exception {
         var call = get(instance, method.getName(), args);
+        Object r;
         if (call instanceof MethodSymbolJava jCall) {
             try {
-                return superCall.call();
+                r = superCall.call();
             } catch (Exception e) {
                 throw new RuntimeException("Failed to invoke method: " + jCall.getName(), e);
             }
+        } else {
+            r = call.invoke(interpreter, instance, args);
         }
-        return call.invoke(interpreter, instance, args);
+        if (r instanceof ReturnVal rv) {
+            return rv.value;
+        }
+        return r;
     }
 }

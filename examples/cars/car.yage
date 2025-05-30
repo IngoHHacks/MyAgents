@@ -6,7 +6,7 @@ ACCELERATION 10;
 DECELERATION 50;
 SPEED_LIMIT 50;
 
-speed 0;
+speed = 0;
 
 tick(dt) {
     // Check if there is another car in front

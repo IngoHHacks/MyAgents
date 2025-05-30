@@ -20,6 +20,9 @@ public class ClassHelper {
 
     public static Object cast(Object arg, Class<?> param) {
         param = MethodHelper.unboxPrimitive(param);
+        if (param == String.class) {
+            return arg.toString();
+        }
         if (param.isPrimitive()) {
             if (arg == null) {
                 throw new IllegalArgumentException("Cannot cast null to primitive type: " + param.getName());

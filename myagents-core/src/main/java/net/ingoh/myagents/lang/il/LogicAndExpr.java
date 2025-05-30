@@ -16,14 +16,22 @@ public record LogicAndExpr(
     @Override
     public Object accept(Interpreter interpreter) {
         var leftValue = left.accept(interpreter);
-        var rightValue = right.accept(interpreter);
         if (leftValue instanceof VariableSymbol) {
             leftValue = ((VariableSymbol) leftValue).getValue(interpreter, interpreter.getExecutionSource().getSource(), Boolean.class);
         }
+        if (leftValue instanceof Boolean) {
+            // If left is false, short-circuit and return false
+            if (!(Boolean) leftValue) {
+                return false;
+            }
+        } else {
+            throw new IllegalArgumentException("Left operand must be of type Boolean");
+        }
+        var rightValue = right.accept(interpreter);
         if (rightValue instanceof VariableSymbol) {
             rightValue = ((VariableSymbol) rightValue).getValue(interpreter, interpreter.getExecutionSource().getSource(), Boolean.class);
         }
-        if (leftValue instanceof Boolean && rightValue instanceof Boolean) {
+        if (rightValue instanceof Boolean) {
             return (Boolean) leftValue && (Boolean) rightValue;
         } else {
             throw new IllegalArgumentException("Operands must be of type Boolean");

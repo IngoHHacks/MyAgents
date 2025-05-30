@@ -2,13 +2,13 @@ package net.ingoh.myagents.lang.symbols;
 
 import net.ingoh.myagents.lang.execution.Interpreter;
 
-import java.util.Hashtable;
+import java.util.HashMap;
 
 public class VariableSymbolImpl implements VariableSymbol {
     private final String name;
     private Object staticValue;
     private Object defaultValue;
-    private Hashtable<Object, Object> values = new Hashtable<>();
+    private HashMap<Object, Object> values = new HashMap<>();
 
     public VariableSymbolImpl(Interpreter interpreter, String name, Object object, Object value) {
         this.name = name;
@@ -64,10 +64,10 @@ public class VariableSymbolImpl implements VariableSymbol {
     @Override
     public void changeValueBy(Interpreter interpreter, Object object, Number value) {
         var thisNum = getValue(interpreter, object, Number.class);
-        if (thisNum instanceof Integer || thisNum instanceof Long) {
-            setValue(interpreter, object, thisNum.longValue() + value.longValue());
-        } else if (thisNum instanceof Float || thisNum instanceof Double) {
+        if (thisNum instanceof Float || thisNum instanceof Double || value instanceof Float || value instanceof Double) {
             setValue(interpreter, object, thisNum.doubleValue() + value.doubleValue());
+        } else if (thisNum != null && value != null) {
+            setValue(interpreter, object, thisNum.longValue() + value.longValue());
         } else {
             throw new IllegalArgumentException("Unsupported number type: " + thisNum.getClass().getName());
         }

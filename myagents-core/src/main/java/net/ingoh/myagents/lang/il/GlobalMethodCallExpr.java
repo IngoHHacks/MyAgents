@@ -1,6 +1,7 @@
 package net.ingoh.myagents.lang.il;
 
 import net.ingoh.myagents.lang.execution.Interpreter;
+import net.ingoh.myagents.lang.execution.ReturnVal;
 
 public record GlobalMethodCallExpr(IdentifierOrSpecial methodName, ExprList args) implements ILNode, Expr {
     public GlobalMethodCallExpr {
@@ -22,6 +23,10 @@ public record GlobalMethodCallExpr(IdentifierOrSpecial methodName, ExprList args
                 .map(arg -> arg.accept(interpreter)).map(x -> interpreter.transformVars(interpreter, x))
                 .toArray(Object[]::new);
         var obj = interpreter.getExecutionSource().getSource();
-        return method.invoke(interpreter, obj, argObjs);
+        var r = method.invoke(interpreter, obj, argObjs);
+        if (r instanceof ReturnVal rv) {
+            return rv.value;
+        }
+        return r;
     }
 }

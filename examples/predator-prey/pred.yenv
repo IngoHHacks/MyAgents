@@ -1,3 +1,21 @@
 type Environment;
 name PredatorPreyEnv;
+tickRate 100;
+width 1000;
+height 1000;
 
+agents Sheep Wolf;
+color = Color.GREEN;
+
+init()
+{
+    for (i = 0; i < 50; i++)
+    {
+        create(Sheep, rnd() * width, rnd() * height);
+    }
+    for (i = 0; i < 10; i++)
+    {
+        create(Wolf, rnd() * width, rnd() * height);
+    }
+    return true;
+}

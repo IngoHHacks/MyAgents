@@ -10,12 +10,16 @@ public class ProgramFile {
     public NamespaceIdentifier namespace = new NamespaceIdentifier("");
     public Class<?> baseType = null;
     public List<ProgramFile> imports = new LinkedList<>();
-    public SymbolTable symbolTable = new SymbolTable();
+    public SymbolTable symbolTable;
+
+    public ProgramFile(Interpreter interpreter) {
+        this.symbolTable = new SymbolTable(interpreter);
+    }
 
     public static ProgramFile fromClass(Interpreter interpreter, Class<?> cls) {
-        ProgramFile programFile = new ProgramFile();
+        ProgramFile programFile = new ProgramFile(interpreter);
         programFile.namespace = new NamespaceIdentifier(cls.getPackageName());
-        programFile.symbolTable = new SymbolTable();
+        programFile.symbolTable = new SymbolTable(interpreter);
         // We don't need imports because classes aren't run by the interpreter directly
         for (var innerClass : cls.getDeclaredClasses()) {
             programFile.symbolTable.addSymbol(interpreter, SymbolType.NONLOCAL_CLASS, innerClass.getSimpleName(), new ClassSymbolJava(innerClass));

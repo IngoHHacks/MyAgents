@@ -1,6 +1,7 @@
 package net.ingoh.myagents.lang.il;
 
 import net.ingoh.myagents.lang.execution.Interpreter;
+import net.ingoh.myagents.lang.execution.ReturnVal;
 import net.ingoh.myagents.lang.il.Case;
 import net.ingoh.myagents.lang.il.Expr;
 import net.ingoh.myagents.lang.il.Stmt;

@@ -3,14 +3,7 @@ package net.ingoh.myagents.lang.execution;
 import java.io.PrintStream;
 import java.util.Hashtable;
 
-import net.ingoh.myagents.lang.symbols.CallableSymbol;
-import net.ingoh.myagents.lang.symbols.ClassSymbol;
-import net.ingoh.myagents.lang.symbols.ConstructorSymbol;
-import net.ingoh.myagents.lang.symbols.MethodSymbol;
-import net.ingoh.myagents.lang.symbols.MethodSymbolJava;
-import net.ingoh.myagents.lang.symbols.Symbol;
-import net.ingoh.myagents.lang.symbols.VariableSymbol;
-import net.ingoh.myagents.lang.symbols.VariableSymbolImpl;
+import net.ingoh.myagents.lang.symbols.*;
 
 public class SymbolTable {
 
@@ -23,7 +16,17 @@ public class SymbolTable {
     public Hashtable<String, VariableSymbol> fields = new Hashtable<>();
     public Hashtable<String, ConstructorSymbol> constructors = new Hashtable<>();
 
-    public SymbolTable() {}
+    public SymbolTable(Interpreter interpreter) {}
+
+    public SymbolTable(Interpreter interpreter, boolean global) {
+        if (global) {
+            addSymbol(interpreter, SymbolType.NONLOCAL_CLASS, "Object", new ClassSymbolJava(Object.class));
+            addSymbol(interpreter, SymbolType.NONLOCAL_CLASS, "String", new ClassSymbolJava(String.class));
+            addSymbol(interpreter, SymbolType.NONLOCAL_CLASS, "Number", new ClassSymbolJava(Number.class));
+            addSymbol(interpreter, SymbolType.NONLOCAL_CLASS, "Math", new ClassSymbolJava(Math.class));
+            addSymbol(interpreter, SymbolType.NONLOCAL_CLASS, "Color", new ClassSymbolJava(java.awt.Color.class));
+        }
+    }
 
     public void addSymbol(Interpreter interpreter, SymbolType symbolType, String simpleName) {
         switch (symbolType) {
@@ -96,6 +99,9 @@ public class SymbolTable {
             return s;
         }
         if (s == null) {
+            if (this != interpreter.getGlobals()) {
+                return interpreter.getGlobals().getSymbol(interpreter, symbolType, simpleName);
+            }
             throw new IllegalArgumentException("Symbol " + simpleName + " not found in symbol table");
         }
         return s;
@@ -120,6 +126,10 @@ public class SymbolTable {
                     return new MethodSymbolJava(Math.class.getMethod("min", double.class, double.class), Math.class);
                 case "max":
                     return new MethodSymbolJava(Math.class.getMethod("max", double.class, double.class), Math.class);
+                case "round":
+                    return new MethodSymbolJava(Math.class.getMethod("round", double.class), Math.class);
+                case "abs":
+                    return new MethodSymbolJava(Math.class.getMethod("abs", double.class), Math.class);
                 case "rnd":
                     return new MethodSymbolJava(Math.class.getMethod("random"), Math.class);
             }

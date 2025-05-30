@@ -14,12 +14,23 @@ public record UnaryMinusExpr(
 
     @Override
     public Object accept(Interpreter interpreter) {
-        var value = (VariableSymbol) expr.accept(interpreter);
-        if (value.getValue(interpreter, interpreter.getExecutionSource().getSource()) instanceof Long || value.getValue(interpreter, interpreter.getExecutionSource().getSource()) instanceof Integer) {
-            value.setValue(interpreter, interpreter.getExecutionSource().getSource(), -value.getValue(interpreter, interpreter.getExecutionSource().getSource(), long.class));
-        } else {
-            value.setValue(interpreter, interpreter.getExecutionSource().getSource(), -value.getValue(interpreter, interpreter.getExecutionSource().getSource(), double.class));
+        var value = expr.accept(interpreter);
+        if (value instanceof VariableSymbol variable) {
+            if (variable.getValue(interpreter, interpreter.getExecutionSource().getSource()) instanceof Long || variable.getValue(interpreter, interpreter.getExecutionSource().getSource()) instanceof Integer) {
+                variable.setValue(interpreter, interpreter.getExecutionSource().getSource(), -variable.getValue(interpreter, interpreter.getExecutionSource().getSource(), long.class));
+            } else {
+                variable.setValue(interpreter, interpreter.getExecutionSource().getSource(), -variable.getValue(interpreter, interpreter.getExecutionSource().getSource(), double.class));
+            }
+            return variable;
         }
-        return value;
+        if (value instanceof Long || value instanceof Integer) {
+            return -((Number) value).longValue();
+        } else if (value instanceof Double) {
+            return -((Double) value);
+        } else if (value instanceof Float) {
+            return -((Float) value);
+        } else {
+            throw new IllegalArgumentException("Unsupported type for unary minus: " + value.getClass().getName());
+        }
     }
 }

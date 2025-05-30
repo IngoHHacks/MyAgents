@@ -132,7 +132,9 @@ public class MyAgentsVisitorImpl extends MyAgentsBaseVisitor<Object> {
     @Override
     public List<LocalVariableDecl> visitLocalVariableDecl(MyAgentsParser.LocalVariableDeclContext ctx) {
         Expr expr;
-        if (ctx.expr() != null) {
+        if (ctx.literal() != null) {
+            expr = visitLiteral(ctx.literal());
+        } else if (ctx.expr() != null) {
             expr = visitExpr(ctx.expr());
         } else {
             expr = null;
@@ -168,7 +170,9 @@ public class MyAgentsVisitorImpl extends MyAgentsBaseVisitor<Object> {
     @Override
     public List<FieldDecl> visitFieldDecl(MyAgentsParser.FieldDeclContext ctx) {
         Expr expr;
-        if (ctx.expr() != null) {
+        if (ctx.literal() != null) {
+            expr = visitLiteral(ctx.literal());
+        } else if (ctx.expr() != null) {
             expr = visitExpr(ctx.expr());
         } else {
             expr = null;

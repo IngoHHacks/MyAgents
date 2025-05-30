@@ -1,0 +1,81 @@
+type Agent;
+name Wolf;
+
+color = Color.GRAY;
+size 20;
+
+// Wolves are predators for sheep and can eat them.
+// When touching another wolf, they can reproduce.
+// Eating a sheep increases energy, which is needed to survive.
+
+REPRODUCE_PROBABILITY 0.2;
+REPRODUCE_DELAY 1;
+MAX_ENERGY 200;
+ENERGY_CONSUMPTION 10;
+ENERGY_GAIN 50;
+
+targetX = -1;
+targetY = -1;
+reproduceDelay = 1;
+energy = MAX_ENERGY / 2; // Start with half of the maximum energy
+
+tick(dt) {
+    // Go to a random position
+    if (targetX == -1 || targetY == -1 || (distanceTo(targetX, targetY).length() < 10)) {
+        targetX = rnd() * env.width;
+        targetY = rnd() * env.height;
+    }
+    moveTowards(targetX, targetY, 200 * dt);
+
+    // Consume energy
+    energy -= ENERGY_CONSUMPTION * dt;
+    text = Math.round(energy);
+
+    // Check if the wolf has died from lack of energy
+    if (energy <= 0) {
+        return false; // The wolf dies
+    }
+
+    // Check for nearby sheep to eat
+    sheep = env.nearestAgent(this, Sheep);
+    if (sheep != null && distanceTo(sheep).length() < size) {
+        eat(sheep);
+    }
+
+    // Reproduce if conditions are met
+    other = env.nearestAgent(this, Wolf);
+    if (other != null && reproduceDelay == 0 && id > other.id && energy >= MAX_ENERGY / 2 && distanceTo(other).length() < size) {
+        if (rnd() < REPRODUCE_PROBABILITY) {
+            reproduce();
+            tell("reproduced", other);
+        }
+        addDelay();
+    }
+
+    // Decrease the delay for reproduction
+    if (reproduceDelay > 0) {
+        reproduceDelay = max(0, reproduceDelay - dt);
+    }
+
+    return true;
+}
+
+hear(message, info) {
+    if (message == "reproduced") {
+        addDelay();
+    }
+    return true;
+}
+
+reproduce() {
+    env.create(Wolf, this.x, this.y);
+}
+
+addDelay() {
+    reproduceDelay = REPRODUCE_DELAY;
+}
+
+eat(sheep) {
+    env.destroy(sheep);
+    energy = min(MAX_ENERGY, energy + ENERGY_GAIN);
+}

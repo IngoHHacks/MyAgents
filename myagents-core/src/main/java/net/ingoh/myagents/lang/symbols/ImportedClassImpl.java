@@ -48,4 +48,16 @@ public class ImportedClassImpl implements ClassSymbol {
     public String getName() {
         return name;
     }
+
+    public ClassSymbolImpl resolve() {
+        var file = interpreter.resolveFile(namespace);
+        if (file == null) {
+            throw new IllegalStateException("Cannot resolve class: " + name + " in namespace: " + namespace);
+        }
+        var tempFile = interpreter.getCurrentFile();
+        interpreter.setCurrentFile(file);
+        var result = new ClassSymbolImpl(interpreter, ((ClassSymbolImpl) interpreter.getSymbol(SymbolType.CLASS, name)).getClassDecl());
+        interpreter.setCurrentFile(tempFile);
+        return result;
+    }
 }
