@@ -1,8 +1,10 @@
 package net.ingoh.myagents.lang.execution;
 
 import java.util.Hashtable;
+import java.util.LinkedList;
 import java.util.List;
 
+import net.ingoh.myagents.core.basetypes.Environment;
 import net.ingoh.myagents.lang.DSLParser;
 import net.ingoh.myagents.lang.il.*;
 import net.ingoh.myagents.lang.symbols.*;
@@ -15,6 +17,7 @@ public class Interpreter {
     private ProgramFile currentProgramFile;
     private Hashtable<Object, String> instances = new Hashtable<>();
     private SymbolTable globals = new SymbolTable(this, true);
+    private List<ProgramFile> envs = new LinkedList<>();
 
     public Interpreter(List<ProgramDecl> sources) {
         for (var source : sources) {
@@ -26,8 +29,14 @@ public class Interpreter {
                 } else if (decl instanceof OverrideBodyDecl overrideBodyDecl) {
                     file.baseType = getType(overrideBodyDecl.type());
                     name = overrideBodyDecl.name();
+                    if (file.name == null || file.name.isEmpty()) {
+                        file.name = name;
+                    }
                     addBaseMethods(name, file, file.baseType);
                     build(file, name, file.baseType);
+                    if (file.baseType == Environment.class) {
+                        envs.add(file);
+                    }
                     if (overrideBodyDecl.agents() != null) {
                         file.symbolTable.addSymbol(this, SymbolType.FIELD, "agentTypes", new VariableSymbolImpl(this, "agentTypes", null, overrideBodyDecl.agents()));
                         for (var agent : overrideBodyDecl.agents()) {
@@ -88,7 +97,7 @@ public class Interpreter {
         switch (type.getName()) {
             case "net.ingoh.myagents.core.basetypes.Environment" -> {
                 file.symbolTable.addSymbol(this, SymbolType.METHOD, "main", new MethodSymbolImpl(
-                        ((MethodDecl)((OverrideBodyDecl) DSLParser.parse("main() {instance = new " + name + "(); return instance.run();}").topLevelDecls().get(0)).bodyDecls().get(0)))
+                        ((MethodDecl)((OverrideBodyDecl) DSLParser.parse("main() {instance = new " + name + "(\"" +  name + "\"); return instance.run();}").topLevelDecls().get(0)).bodyDecls().get(0)))
                 );
             }
         }
@@ -103,12 +112,15 @@ public class Interpreter {
         if (currentProgramFile.symbolTable.hasSymbol(this, SymbolType.METHOD, "main")) {
             var m = currentProgramFile.symbolTable.resolveMethod(this, "main");
             var code = invoke(ExecutionSource.STATIC, m);
+            if (code instanceof ReturnVal returnVal) {
+                code = returnVal.value;
+            }
             System.out.println("Program started with code: " + code);
         }
     }
 
     private ProgramFile parseFile(ProgramDecl program) {
-        currentProgramFile = new ProgramFile(this);
+        currentProgramFile = new ProgramFile(this, "");
         for (var decl : program.topLevelDecls()) {
             decl.accept(this);
         }
@@ -432,5 +444,35 @@ public class Interpreter {
 
     public SymbolTable getGlobals() {
         return globals;
+    }
+
+    public ProgramFile getMain() {
+        if (envs.isEmpty()) {
+            throw new RuntimeException("No main environment found");
+        }
+        if (envs.size() > 1) {
+            System.out.println("Multiple main environments found:");
+            while (true) {
+                var i = 1;
+                for (var env : envs) {
+                    System.out.println(i + ": " + env.name);
+                    i++;
+                }
+                System.out.print("Select one by index: ");
+                var input = new java.util.Scanner(System.in).next();
+                var n = 0;
+                if (input.matches("\\d+")) {
+                    n = Integer.parseInt(input);
+                    if (n >= 1 && n <= envs.size()) {
+                        return envs.get(n - 1);
+                    } else {
+                        System.out.println("Invalid index, please enter a number between 1 and " + envs.size() + ".");
+                    }
+                } else {
+                    System.out.println("Invalid input, please enter a number between 1 and " + envs.size() + ".");
+                }
+            }
+        }
+        return envs.getFirst();
     }
 }

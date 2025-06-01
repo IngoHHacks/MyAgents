@@ -3,7 +3,7 @@ package net.ingoh.myagents.utils;
 public class ClassHelper {
     public static Class<?> unproxy(Class<?> cls) {
         if (cls == null) {
-            throw new IllegalArgumentException("Class cannot be null");
+            return null;
         }
         if (isProxy(cls)) {
             return cls.getSuperclass();

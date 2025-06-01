@@ -21,21 +21,19 @@ public class ConstructorSymbolJava implements ConstructorSymbol {
     private final String name;
     private final Constructor<?> constructor;
     private final SymbolTable symbolTable;
+    private final boolean takesInterpreter;
 
     public ConstructorSymbolJava(String name, Constructor<?> constructor, SymbolTable symbolTable) {
         this.name = name;
         this.constructor = constructor;
         this.symbolTable = symbolTable;
+        this.takesInterpreter = constructor.getParameterTypes().length > 0 &&
+                constructor.getParameterTypes()[0] == Interpreter.class;
     }
 
     @Override
     public String getName() {
         return name;
-    }
-
-    @Override
-    public List<String> getParameterNames() {
-        return Stream.of(constructor.getParameters()).map(Parameter::getName).collect(Collectors.toList());
     }
 
     @Override
@@ -46,6 +44,11 @@ public class ConstructorSymbolJava implements ConstructorSymbol {
     @Override
     public SymbolTable getSymbolTable() {
         return symbolTable;
+    }
+
+    @Override
+    public boolean takesInterpreter() {
+        return takesInterpreter;
     }
 
     @Override
@@ -73,7 +76,7 @@ public class ConstructorSymbolJava implements ConstructorSymbol {
                     .load(constructor.getDeclaringClass().getClassLoader())
                     .getLoaded()
                     .getConstructor(clsList)
-                    .newInstance(argList);
+                    .newInstance(args);
 
             interpreter.addInstance(instance, name);
 

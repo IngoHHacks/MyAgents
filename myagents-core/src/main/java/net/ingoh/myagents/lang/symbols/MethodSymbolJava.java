@@ -30,13 +30,6 @@ public class MethodSymbolJava implements MethodSymbol {
     }
 
     @Override
-    public List<String> getParameterNames() {
-        return Stream.of(src.getParameters())
-                .map(Parameter::getName)
-                .toList();
-    }
-
-    @Override
     public Object invoke(Interpreter interpreter, Object objOvr, Object... args) {
         try {
             if (obj != null) {

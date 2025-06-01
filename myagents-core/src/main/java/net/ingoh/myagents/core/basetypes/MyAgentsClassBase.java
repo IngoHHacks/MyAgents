@@ -9,4 +9,9 @@ public abstract class MyAgentsClassBase {
     public MyAgentsClassBase(Interpreter interpreter) {
         this.interpreter = interpreter;
     }
+
+    public MyAgentsClassBase(Interpreter interpreter, String type) {
+        this.interpreter = interpreter;
+        this.__type = type;
+    }
 }

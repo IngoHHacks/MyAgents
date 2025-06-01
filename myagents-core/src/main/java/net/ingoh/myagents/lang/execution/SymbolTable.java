@@ -132,6 +132,8 @@ public class SymbolTable {
                     return new MethodSymbolJava(Math.class.getMethod("abs", double.class), Math.class);
                 case "rnd":
                     return new MethodSymbolJava(Math.class.getMethod("random"), Math.class);
+                case "interpreter":
+                    return new LambdaMethodSymbol("interpreter", (__) -> interpreter);
             }
         } catch (NoSuchMethodException e) {
             throw new RuntimeException("Error resolving special method: " + methodName, e);
@@ -143,13 +145,9 @@ public class SymbolTable {
         if (size < 0) {
             throw new IllegalArgumentException("Size cannot be negative");
         }
-        var entries = constructors.elements();
-        while (entries.hasMoreElements()) {
-            var entry = entries.nextElement();
-            if (entry.getParameterCount() == size) {
-                return entry;
-            }
-        }
-        throw new IllegalArgumentException("Constructor with " + size + " parameters not found in symbol table");
+        return constructors.values().stream()
+                .filter(c -> c.getParameterCount() == size || c.takesInterpreter() && c.getParameterCount() == size + 1)
+                .findFirst()
+                .orElseThrow(() -> new IllegalArgumentException("Constructor with " + size + " parameters not found in symbol table"));
     }
 }

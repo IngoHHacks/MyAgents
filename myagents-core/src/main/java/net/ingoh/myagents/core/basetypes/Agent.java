@@ -16,6 +16,15 @@ public class Agent extends MyAgentsClassBase {
     public double size = 6.0;
     public String text = "";
 
+    public Agent(Interpreter interpreter, String type, Environment env, int id, Number x, Number y) {
+        super(interpreter, type);
+        this.env = env;
+        this.id = id;
+        this.x = x.doubleValue();
+        this.y = y.doubleValue();
+        this.__type = type;
+    }
+
     public Agent(Interpreter interpreter, Environment env, int id, Number x, Number y) {
         super(interpreter);
         this.env = env;

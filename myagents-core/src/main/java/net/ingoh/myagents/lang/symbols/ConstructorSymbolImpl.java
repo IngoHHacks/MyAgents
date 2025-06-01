@@ -22,21 +22,19 @@ public class ConstructorSymbolImpl implements ConstructorSymbol {
     private final ConstructorDecl constructorDecl;
     private final int size;
     private final SymbolTable symbolTable;
+    private final boolean takesInterpreter;
 
     public ConstructorSymbolImpl(ConstructorDecl constructorDecl, SymbolTable symbolTable) {
         this.constructorDecl = constructorDecl;
         this.size = constructorDecl.params().size();
         this.symbolTable = symbolTable;
+        this.takesInterpreter = constructorDecl.params().stream()
+                .anyMatch(param -> param.id().equals("interpreter"));
     }
 
     @Override
     public String getName() {
         return constructorDecl.type().id();
-    }
-
-    @Override
-    public List<String> getParameterNames() {
-        return constructorDecl.params().stream().map(s -> s.id()).toList();
     }
 
     @Override
@@ -47,6 +45,11 @@ public class ConstructorSymbolImpl implements ConstructorSymbol {
     @Override
     public SymbolTable getSymbolTable() {
         return symbolTable;
+    }
+
+    @Override
+    public boolean takesInterpreter() {
+        return takesInterpreter;
     }
 
     @Override

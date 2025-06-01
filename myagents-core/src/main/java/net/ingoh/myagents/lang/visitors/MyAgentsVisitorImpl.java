@@ -674,7 +674,7 @@ public class MyAgentsVisitorImpl extends MyAgentsBaseVisitor<Object> {
             return new FloatLiteralExpr(Float.parseFloat(ctx.FLOAT_LITERAL().getText()));
         }
         if (ctx.STRING_LITERAL() != null) {
-            return new StringLiteralExpr(ctx.STRING_LITERAL().getText());
+            return new StringLiteralExpr(ctx.STRING_LITERAL().getText().substring(1, ctx.STRING_LITERAL().getText().length() - 1)); // Remove quotes
         }
         if (ctx.BOOL_LITERAL() != null) {
             return new BooleanLiteralExpr(Boolean.parseBoolean(ctx.BOOL_LITERAL().getText()));

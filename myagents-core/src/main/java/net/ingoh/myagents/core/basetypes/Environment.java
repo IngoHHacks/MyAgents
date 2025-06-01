@@ -4,6 +4,7 @@ import net.ingoh.myagents.core.actions.AddAgentAction;
 import net.ingoh.myagents.core.actions.RemoveAgentAction;
 import net.ingoh.myagents.core.actions.ScheduledEnvAction;
 import net.ingoh.myagents.core.communication.MessageMeta;
+import net.ingoh.myagents.lang.execution.ExecutionSource;
 import net.ingoh.myagents.lang.execution.Interpreter;
 import net.ingoh.myagents.lang.il.TypeIdentifier;
 import net.ingoh.myagents.utils.ThreadSafeList;
@@ -21,12 +22,20 @@ public class Environment extends MyAgentsClassBase {
     public Hashtable<String, List<Agent>> agentTypeMap;
     public int width;
     public int height;
+    public double __speed = 1.0;
     public boolean wrap = false;
 
     public Color color = Color.BLACK;
 
     private boolean __ticking = false;
     private List<ScheduledEnvAction> scheduledActions = new LinkedList<>();
+
+    public Environment(Interpreter interpreter, String type) {
+        super(interpreter, type);
+        this.agentTypes = new ThreadSafeList<>();
+        this.agents = new ThreadSafeList<>();
+        this.agentTypeMap = new Hashtable<>();
+    }
 
     public Environment(Interpreter interpreter) {
         super(interpreter);
@@ -42,7 +51,7 @@ public class Environment extends MyAgentsClassBase {
             long time = System.currentTimeMillis();
             long eTime = time;
             if (tickRate <= 0) {
-                tickRate = 10; // Default to 10 ticks per second
+                tickRate = 100; // Default to 100 ticks per second
             }
             long sleepTime = (long) (1000 / tickRate);
             long excess = 0;
@@ -61,7 +70,7 @@ public class Environment extends MyAgentsClassBase {
                 for (int i = 0; i < agents.size(); i++) {
                     Agent agent = agents.get(i);
                     interpreter.setExecutionSource(agent);
-                    if (!agent.tick(dt / 1000.0)) {
+                    if (!agent.tick(__speed * dt / 1000.0)) {
                         destroy(agent);
                     }
                 }
@@ -87,7 +96,7 @@ public class Environment extends MyAgentsClassBase {
         JFrame frame = new JFrame();
         frame.setTitle("MyAgents Environment");
         frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        frame.setSize(width, height);
+        frame.setSize(width + 300, height);
         frame.setLocationRelativeTo(null);
         frame.setLayout(new BorderLayout());
         Container contentPane = frame.getContentPane();
@@ -117,6 +126,45 @@ public class Environment extends MyAgentsClassBase {
         panel.setPreferredSize(new Dimension(width, height));
         panel.setBackground(color);
         centerer.add(panel, BorderLayout.CENTER);
+        var sidePanel = new JPanel();
+        sidePanel.setPreferredSize(new Dimension(300, height));
+        sidePanel.setBackground(Color.LIGHT_GRAY);
+        sidePanel.setLayout(new GridLayout(0, 1));
+        JLabel titleLabel = new JLabel("<html>"  + this.__type + " Environment</html>", SwingConstants.CENTER);
+        titleLabel.setFont(new Font("Arial", Font.BOLD, 24));
+        titleLabel.setForeground(Color.BLACK);
+        sidePanel.add(titleLabel);
+        var agentCountLabel = new JLabel("Agents: " + agents.size(), SwingConstants.CENTER);
+        agentCountLabel.setFont(new Font("Arial", Font.PLAIN, 18));
+        agentCountLabel.setForeground(Color.BLACK);
+        sidePanel.add(agentCountLabel);
+        var subCounts = new JPanel();
+        subCounts.setLayout(new GridLayout(agentTypeMap.size(), 1));
+        for (String agentType : agentTypeMap.keySet()) {
+            JLabel label = new JLabel("<html>" + agentType + ": " + agentTypeMap.get(agentType).size() + "</html>", SwingConstants.CENTER);
+            label.setFont(new Font("Arial", Font.PLAIN, 16));
+            label.setForeground(Color.BLACK);
+            subCounts.add(label);
+        }
+        sidePanel.add(subCounts);
+        var simSpeedPanel = new JPanel();
+        simSpeedPanel.setLayout(new GridLayout(2, 1));
+        JLabel speedLabel = new JLabel("Simulation Speed: " + __speed + "×", SwingConstants.CENTER);
+        speedLabel.setFont(new Font("Arial", Font.PLAIN, 18));
+        speedLabel.setForeground(Color.BLACK);
+        simSpeedPanel.add(speedLabel);
+        JSlider simSpeedSlider = new JSlider(JSlider.HORIZONTAL, 0, 11, 4);
+        simSpeedSlider.setMinorTickSpacing(1);
+        simSpeedSlider.setPaintTicks(true);
+        simSpeedSlider.setValue((int) getSpeedTo(__speed));
+        simSpeedSlider.addChangeListener(e -> {
+            int value = simSpeedSlider.getValue();
+            __speed = getSpeedFrom(value);
+            speedLabel.setText("Simulation Speed: " + __speed + "×");
+        });
+        simSpeedPanel.add(simSpeedSlider);
+        sidePanel.add(simSpeedPanel);
+        contentPane.add(sidePanel, BorderLayout.EAST);
         frame.pack();
         frame.setVisible(true);
         Timer timer = new Timer(1000 / 60, e -> {
@@ -145,11 +193,10 @@ public class Environment extends MyAgentsClassBase {
             }
             List<Agent> list = agentTypeMap.get(agent);
             int id = list.size();
-            Agent instance = (Agent) interpreter.resolveConstructor(new TypeIdentifier(agent), 5)
-                    .invoke(interpreter, null, this, id, x, y);
+            Agent instance = (Agent) interpreter.resolveConstructor(new TypeIdentifier(agent), 6)
+                    .invoke(interpreter, ExecutionSource.STATIC, agent, this, id, x, y);
             agents.add(instance);
             list.add(instance);
-            instance.__type = agent;
             return true;
         } catch (Exception e) {
             e.printStackTrace();
@@ -243,5 +290,38 @@ public class Environment extends MyAgentsClassBase {
             }
         }
         return true;
+    }
+
+    private double getSpeedFrom(int value) {
+        switch (value) {
+            case 0: return 0.01;
+            case 1: return 0.1;
+            case 2: return 0.25;
+            case 3: return 0.5;
+            case 4: return 1.0;
+            case 5: return 2.0;
+            case 6: return 4.0;
+            case 7: return 8.0;
+            case 8: return 16.0;
+            case 9: return 32.0;
+            case 10: return 100.0;
+            case 11: return 1000.0;
+            default: return 0;
+        }
+    }
+
+    private double getSpeedTo(double value) {
+        if (value <= 0.01) return 0;
+        if (value <= 0.1) return 1;
+        if (value <= 0.25) return 2;
+        if (value <= 0.5) return 3;
+        if (value <= 1.0) return 4;
+        if (value <= 2.0) return 5;
+        if (value <= 4.0) return 6;
+        if (value <= 8.0) return 7;
+        if (value <= 16.0) return 8;
+        if (value <= 32.0) return 9;
+        if (value <= 100.0) return 10;
+        return 11;
     }
 }

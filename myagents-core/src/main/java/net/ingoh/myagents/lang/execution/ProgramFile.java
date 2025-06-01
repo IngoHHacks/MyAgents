@@ -7,17 +7,19 @@ import java.util.LinkedList;
 import java.util.List;
 
 public class ProgramFile {
+    public String name = "";
     public NamespaceIdentifier namespace = new NamespaceIdentifier("");
     public Class<?> baseType = null;
     public List<ProgramFile> imports = new LinkedList<>();
     public SymbolTable symbolTable;
 
-    public ProgramFile(Interpreter interpreter) {
+    public ProgramFile(Interpreter interpreter, String name) {
         this.symbolTable = new SymbolTable(interpreter);
+        this.name = name;
     }
 
     public static ProgramFile fromClass(Interpreter interpreter, Class<?> cls) {
-        ProgramFile programFile = new ProgramFile(interpreter);
+        ProgramFile programFile = new ProgramFile(interpreter, cls.getSimpleName());
         programFile.namespace = new NamespaceIdentifier(cls.getPackageName());
         programFile.symbolTable = new SymbolTable(interpreter);
         // We don't need imports because classes aren't run by the interpreter directly
