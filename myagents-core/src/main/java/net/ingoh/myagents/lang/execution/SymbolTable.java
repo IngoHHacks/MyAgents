@@ -20,6 +20,7 @@ public class SymbolTable {
 
     public SymbolTable(Interpreter interpreter, boolean global) {
         if (global) {
+            addSymbol(interpreter, SymbolType.NONLOCAL_CLASS, "System", new ClassSymbolJava(System.class));
             addSymbol(interpreter, SymbolType.NONLOCAL_CLASS, "Object", new ClassSymbolJava(Object.class));
             addSymbol(interpreter, SymbolType.NONLOCAL_CLASS, "String", new ClassSymbolJava(String.class));
             addSymbol(interpreter, SymbolType.NONLOCAL_CLASS, "Number", new ClassSymbolJava(Number.class));
@@ -42,39 +43,41 @@ public class SymbolTable {
     }
 
     public void addSymbol(Interpreter interpreter, SymbolType symbolType, String simpleName, Symbol decl) {
-        if (!symbols.containsKey(simpleName)) {
-            symbols.put(simpleName, symbolType);
-            declarations.put(simpleName, decl);
-            switch (symbolType) {
-                case NONLOCAL_CLASS:
-                case LOCAL_CLASS:
-                case CLASS:
-                    classes.put(simpleName, (ClassSymbol) decl);
-                    break;
-                case CALLABLE:
-                case METHOD:
-                    methods.put(simpleName, (MethodSymbol) decl);
-                    break;
-                case FIELD:
-                case PARAMETER:
-                case LOCAL_VARIABLE:
-                case VARIABLE:
-                    fields.put(simpleName, (VariableSymbol) decl);
-                    break;
-                case CONSTRUCTOR:
-                    constructors.put(simpleName, (ConstructorSymbol) decl);
-                    break;
+        if (symbols.containsKey(simpleName)) {
+            if (getSymbolType(interpreter, simpleName) != symbolType) {
+                System.out.println("Warning: Symbol " + simpleName + " already exists with type " +
+                        getSymbolType(interpreter, simpleName) + ". Overwriting with type " + symbolType);
             }
-        } else {
-            if (symbolType == SymbolType.FIELD || symbolType == SymbolType.PARAMETER ||
+            else if (symbolType == SymbolType.FIELD || symbolType == SymbolType.PARAMETER ||
                 symbolType == SymbolType.LOCAL_VARIABLE || symbolType == SymbolType.VARIABLE) {
                 var varSymbol = (VariableSymbol) declarations.get(simpleName);
                 if (varSymbol != null) {
                     varSymbol.setValue(interpreter, interpreter.getExecutionSource().getSource(), decl);
                 }
-            } else {
-                symbols.put(simpleName, symbolType);
+                return;
             }
+        }
+        symbols.put(simpleName, symbolType);
+        declarations.put(simpleName, decl);
+        switch (symbolType) {
+            case NONLOCAL_CLASS:
+            case LOCAL_CLASS:
+            case CLASS:
+                classes.put(simpleName, (ClassSymbol) decl);
+                break;
+            case CALLABLE:
+            case METHOD:
+                methods.put(simpleName, (MethodSymbol) decl);
+                break;
+            case FIELD:
+            case PARAMETER:
+            case LOCAL_VARIABLE:
+            case VARIABLE:
+                fields.put(simpleName, (VariableSymbol) decl);
+                break;
+            case CONSTRUCTOR:
+                constructors.put(simpleName, (ConstructorSymbol) decl);
+                break;
         }
     }
 

@@ -323,6 +323,7 @@ expr
 
 primary
     : parenExpr
+    | arrayDeclarator
     | THIS
     | SUPER
     | literal
@@ -355,24 +356,20 @@ switchLabeledRule
 switchRuleOutcome: block | blockStmt*;
 
 creator
-    : createdName classCreatorRest
-    | createdName arrayCreatorRest
-    ;
+    : createdName classCreatorRest;
 
 createdName: id (DOT id)*;
 
 classCreatorRest: arguments classBody?;
 
-arrayCreatorRest
-    : (LBRACK expr RBRACK)+ (LBRACK RBRACK)*
-    ;
+arrayDeclarator: LBRACK (expr | arrayDeclarator)? (COMMA (expr | arrayDeclarator))* RBRACK;
 
 superSuffix: arguments;
 
 arguments: LPAREN exprList? RPAREN;
 
 // DSL-specific rules
-overrideBodyDecl: (classBodyDecl | specialDecl)*;
+overrideBodyDecl: (importDecl | classBodyDecl | specialDecl)*;
 
 overrideTypeDecl: 'type' id;
 

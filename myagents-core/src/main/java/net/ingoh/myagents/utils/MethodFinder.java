@@ -1,5 +1,7 @@
 package net.ingoh.myagents.utils;
 
+import net.ingoh.myagents.core.DSLArray;
+
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Method;
 import java.util.stream.Stream;
@@ -74,6 +76,9 @@ public class MethodFinder {
     private static boolean isCastable(Class<?> target, Class<?> source) {
         target = MethodHelper.boxPrimitive(target);
         source = MethodHelper.boxPrimitive(source);
+        if (source.isArray()) {
+            return target.isArray();
+        }
         if (target.isAssignableFrom(source)) return true;
         if (target == Integer.class ||
             target == Long.class ||

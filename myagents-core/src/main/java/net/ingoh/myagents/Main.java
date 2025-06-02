@@ -17,10 +17,10 @@ public class Main {
         var examples = new LinkedList<String>();
         for (var file : Path.of(exampleDir).toFile().listFiles()) {
             if (file.isFile() && file.getName().endsWith(".yage")) {
-                examples.add(file.getAbsolutePath());
+                examples.addFirst(file.getAbsolutePath());
             }
             if (file.getName().endsWith(".yenv")) {
-                examples.add(0, file.getAbsolutePath());
+                examples.add(file.getAbsolutePath());
             }
         }
         ILConverter.clean();

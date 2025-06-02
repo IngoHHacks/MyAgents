@@ -1,0 +1,14 @@
+type Environment;
+name ComplexEnvironment;
+tickRate 100;
+width 1000;
+height 1000;
+
+agents MiniLearner;
+
+import java.util.UUID;
+
+init() {
+    create(MiniLearner, 0, 0);
+    return true;
+}

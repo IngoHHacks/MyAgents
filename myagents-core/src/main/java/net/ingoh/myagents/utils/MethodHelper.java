@@ -1,5 +1,7 @@
 package net.ingoh.myagents.utils;
 
+import net.ingoh.myagents.core.DSLArray;
+
 import java.lang.reflect.Executable;
 import java.lang.reflect.Method;
 
@@ -14,6 +16,9 @@ public class MethodHelper {
         }
         Object[] castedArgs = new Object[args.length];
         for (int i = 0; i < args.length; i++) {
+            if (args[i] instanceof DSLArray da) {
+                args[i] = da.toArray();
+            }
             if (args[i] == null || params[i].isInstance(args[i])) {
                 castedArgs[i] = args[i];
             } else {

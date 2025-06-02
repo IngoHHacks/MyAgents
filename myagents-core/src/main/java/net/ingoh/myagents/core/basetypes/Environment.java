@@ -223,8 +223,9 @@ public class Environment extends MyAgentsClassBase {
             List<Agent> list = agentTypeMap.get(agent);
             int id = list.size();
             Agent instance = (Agent) interpreter.resolveConstructor(new TypeIdentifier(agent), 6)
-                    .invoke(interpreter, ExecutionSource.STATIC, agent, this, id, x, y);
+                    .invoke(interpreter, null, agent, this, id, x, y);
             agents.add(instance);
+            instance.init();
             list.add(instance);
             return true;
         } catch (Exception e) {

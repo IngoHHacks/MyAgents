@@ -1,5 +1,9 @@
 package net.ingoh.myagents.utils;
 
+import net.ingoh.myagents.core.DSLArray;
+
+import java.lang.reflect.Array;
+
 public class ClassHelper {
     public static Class<?> unproxy(Class<?> cls) {
         if (cls == null) {
@@ -19,6 +23,13 @@ public class ClassHelper {
     }
 
     public static Object cast(Object arg, Class<?> param) {
+        if (param.isArray()) {
+            var arr = makeArray(param.getComponentType(), Array.getLength(arg));
+            for (int i = 0; i < Array.getLength(arg); i++) {
+                Array.set(arr, i, cast(Array.get(arg, i), param.getComponentType()));
+            }
+            return arr;
+        }
         param = MethodHelper.unboxPrimitive(param);
         if (param == String.class) {
             return arg.toString();
@@ -66,5 +77,17 @@ public class ClassHelper {
             }
         }
         return param.cast(arg);
+    }
+
+    private static Object makeArray(Class<?> componentType, int length) {
+        componentType = MethodHelper.unboxPrimitive(componentType);
+        return Array.newInstance(componentType, length);
+    }
+
+    public static Object unarray(Object obj) {
+        if (obj instanceof DSLArray da) {
+            return da.toArray();
+        }
+        return obj;
     }
 }

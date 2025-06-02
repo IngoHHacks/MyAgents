@@ -1,5 +1,6 @@
 package net.ingoh.myagents.lang.symbols;
 
+import net.ingoh.myagents.core.DSLArray;
 import net.ingoh.myagents.lang.execution.Interpreter;
 
 import java.util.HashMap;
@@ -30,7 +31,14 @@ public class VariableSymbolImpl implements VariableSymbol {
             return staticValue;
         }
         if (values.containsKey(object)) {
-            return values.get(object);
+            var val = values.get(object);
+            while (val instanceof VariableSymbol vs) {
+                val = vs.getValue(interpreter, object);
+            }
+            if (val instanceof DSLArray arr) {
+                val = arr.toArray();
+            }
+            return val;
         }
         setValue(interpreter, object, defaultValue);
         return values.get(object);

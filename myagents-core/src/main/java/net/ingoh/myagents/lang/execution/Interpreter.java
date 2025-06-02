@@ -4,6 +4,7 @@ import java.util.Hashtable;
 import java.util.LinkedList;
 import java.util.List;
 
+import net.ingoh.myagents.core.DSLArray;
 import net.ingoh.myagents.core.basetypes.Environment;
 import net.ingoh.myagents.lang.DSLParser;
 import net.ingoh.myagents.lang.il.*;
@@ -40,10 +41,17 @@ public class Interpreter {
                     if (overrideBodyDecl.agents() != null) {
                         file.symbolTable.addSymbol(this, SymbolType.FIELD, "agentTypes", new VariableSymbolImpl(this, "agentTypes", null, overrideBodyDecl.agents()));
                         for (var agent : overrideBodyDecl.agents()) {
-                            globals.addSymbol(this, SymbolType.NONLOCAL_CLASS, agent, new ImportedClassImpl(this, agent));
-                            file.symbolTable.addSymbol(this, SymbolType.NONLOCAL_CLASS, agent, new ImportedClassImpl(this, agent));
+                            globals.addSymbol(this, SymbolType.NONLOCAL_CLASS, agent, importFrom(agent));
+                            file.symbolTable.addSymbol(this, SymbolType.NONLOCAL_CLASS, agent, importFrom(agent));
                         }
                     }
+                    if (overrideBodyDecl.importDecls() != null) {
+                        for (var importDecl : overrideBodyDecl.importDecls()) {
+                            importFrom(importDecl);
+                        }
+                    }
+                } else {
+                    decl.accept(this);
                 }
             }
             programFiles.put(name, file);
@@ -172,9 +180,18 @@ public class Interpreter {
     public CallableSymbol resolveMethod(Object src, IdentifierOrSpecial methodId, ExprList args) {
         var tempFile = currentProgramFile;
         var tempExecutionSource = executionSource;
-        String str;
+        String str = null;
         if (src instanceof ClassSymbol classSymbol) {
             str = classSymbol.getNameSpace();
+            if (classSymbol instanceof ClassSymbolFile classSymbolFile) {
+                src = classSymbolFile.getFile();
+            } else if (classSymbol instanceof ClassSymbolImpl classSymbolImpl) {
+                src = classSymbolImpl.getClassDecl();
+            } else if (classSymbol instanceof ClassSymbolJava classSymbolJava) {
+                src = classSymbolJava.getSrc();
+            } else {
+                throw new RuntimeException("Unknown class symbol type: " + classSymbol.getClass().getName());
+            }
         } else {
             while (src instanceof VariableSymbol variableSymbol) {
                 var obj = variableSymbol.getValue(this, executionSource.getSource());
@@ -183,11 +200,18 @@ public class Interpreter {
                 }
                 src = obj;
             }
+        }
+        if (src != null && !(src instanceof ProgramFile)) {
+            str = ClassHelper.unproxy(src.getClass()).getName();
+        } else if (src != null) {
             str = src.getClass().getName();
         }
-        str = ClassHelper.unproxy(src.getClass()).getName();
         executionSource = new ExecutionSource(src);
-        currentProgramFile = str != null ? resolveFile(str) : currentProgramFile;
+        if (src instanceof ProgramFile programFile) {
+            currentProgramFile = programFile;
+        } else if (!(src instanceof Class<?>)) {
+            currentProgramFile = str != null ? resolveFile(str) : currentProgramFile;
+        }
         if (currentProgramFile == null) {
             throw new RuntimeException("File not found: " + src.getClass().getPackageName());
         }
@@ -233,12 +257,19 @@ public class Interpreter {
         currentProgramFile.namespace = namespace;
     }
 
-    public void importFrom(ImportDecl importDecl) {
+    public ClassSymbolFile importFrom(String namespace) {
+        return importFrom(new ImportDecl(false, new NamespaceIdentifier(namespace)));
+    }
+
+    public ClassSymbolFile importFrom(ImportDecl importDecl) {
         if (importDecl.isStatic()) {
             throw new RuntimeException("Static import not supported yet");
         } else {
             var file = resolveFile(importDecl.namespace().id());
             programFiles.put(file.namespace.id(), file);
+            var importedClass = new ClassSymbolFile(this, file);
+            currentProgramFile.symbolTable.addSymbol(this, SymbolType.NONLOCAL_CLASS, file.name, importedClass);
+            return importedClass;
         }
     }
 
@@ -354,14 +385,31 @@ public class Interpreter {
         if (classSymbol == null || memberValue == null) {
             throw new IllegalArgumentException("Class symbol and member value cannot be null");
         }
-        if (classSymbol instanceof ImportedClassImpl importedClass) {
-            classSymbol = importedClass.resolve();
-        }
-        if (classSymbol instanceof ClassSymbolImpl classSymbolImpl) {
-            var cls = classSymbolImpl.getClassDecl().id().id();
-            var file = whatsMyFile(cls);
+        if (classSymbol instanceof ClassSymbolJava classSymbolJava) {
+            var cls = classSymbolJava.getSrc();
+            try {
+                return cls.getField(memberValue.toString()).get(null);
+            } catch (NoSuchFieldException e) {
+                throw new RuntimeException("Static field not found: " + memberValue + " in " + cls.getName(), e);
+            } catch (IllegalAccessException e) {
+                throw new RuntimeException("Cannot access static field: " + memberValue + " in " + cls.getName(), e);
+            }
+        } else {
+            String cls;
+            ProgramFile file;
+            if (classSymbol instanceof ClassSymbolFile importedClass) {
+                file = importedClass.getFile();
+                cls = file.fullName();
+            }
+            else if (classSymbol instanceof ClassSymbolImpl classSymbolImpl) {
+                cls = classSymbolImpl.getClassDecl().id().id();
+                file = whatsMyFile(cls);
+            }
+            else {
+                throw new RuntimeException("File not found for class symbol: " + classSymbol);
+            }
             if (file == null) {
-                throw new RuntimeException("File not found for class: " + cls);
+                throw new RuntimeException("File not found for class symbol: " + classSymbol);
             }
             if (file.symbolTable.hasSymbol(this, SymbolType.FIELD, memberValue.toString())) {
                 return ((VariableSymbol) file.symbolTable.getSymbol(this, SymbolType.FIELD, memberValue.toString())).getValue(this, null);
@@ -376,17 +424,6 @@ public class Interpreter {
                 throw new RuntimeException("Class not found: " + cls, e);
             }
         }
-        else if (classSymbol instanceof ClassSymbolJava classSymbolJava) {
-            var cls = classSymbolJava.getSrc();
-            try {
-                return cls.getField(memberValue.toString()).get(null);
-            } catch (NoSuchFieldException e) {
-                throw new RuntimeException("Static field not found: " + memberValue + " in " + cls.getName(), e);
-            } catch (IllegalAccessException e) {
-                throw new RuntimeException("Cannot access static field: " + memberValue + " in " + cls.getName(), e);
-            }
-        }
-        throw new IllegalArgumentException("Invalid class symbol: " + classSymbol);
     }
 
     ////////////////////////////////////////////
@@ -474,5 +511,17 @@ public class Interpreter {
             }
         }
         return envs.getFirst();
+    }
+
+    public DSLArray parseArray(ArrayLiteralExpr arrayLiteralExpr) {
+        var list = new LinkedList<>();
+        for (var expr : arrayLiteralExpr.elements()) {
+            var value = visitExpr(expr);
+            if (value instanceof ArrayLiteralExpr subArray) {
+                value = parseArray(subArray);
+            }
+            list.add(value);
+        }
+        return new DSLArray(list);
     }
 }

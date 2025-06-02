@@ -1,7 +1,9 @@
 package net.ingoh.myagents.lang.il;
 
+import net.ingoh.myagents.lang.execution.ExecutionSource;
 import net.ingoh.myagents.lang.execution.Interpreter;
 import net.ingoh.myagents.lang.execution.ReturnVal;
+import net.ingoh.myagents.lang.symbols.ClassSymbolFile;
 import net.ingoh.myagents.lang.symbols.Symbol;
 
 import java.util.Arrays;
@@ -26,6 +28,9 @@ public record MethodCallExpr(Expr target, IdentifierOrSpecial methodName, ExprLi
         var argObjs = args.exprs().stream()
                 .map(arg -> arg.accept(interpreter)).map(x -> interpreter.transformVars(interpreter, x))
                 .toArray(Object[]::new);
+        if (obj instanceof ClassSymbolFile) {
+            obj = null;
+        }
         var r = method.invoke(interpreter, obj, argObjs);
         if (r instanceof ReturnVal rv) {
             return rv.value;

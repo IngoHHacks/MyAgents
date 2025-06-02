@@ -50,6 +50,7 @@ public class MyAgentsVisitorImpl extends MyAgentsBaseVisitor<Object> {
     @Override
     public OverrideBodyDecl visitOverrideBodyDecl(MyAgentsParser.OverrideBodyDeclContext ctx) {
         List<ClassBodyDecl> bodyDecls = new LinkedList<>();
+        List<ImportDecl> importDecls = new LinkedList<>();
         var cls = ctx.specialDecl().stream().filter(spcDecl -> spcDecl.overrideTypeDecl() != null).findFirst().orElse(null);
         var className = "";
         if (cls != null) {
@@ -63,6 +64,9 @@ public class MyAgentsVisitorImpl extends MyAgentsBaseVisitor<Object> {
                 }
             }
         }
+        for (var importDecl : ctx.importDecl()) {
+            importDecls.add(visitImportDecl(importDecl));
+        }
         var name = "";
         var type = "";
         List<String> agents = new LinkedList<String>();
@@ -75,7 +79,7 @@ public class MyAgentsVisitorImpl extends MyAgentsBaseVisitor<Object> {
                 agents = spcDecl.agentsDecl().id().stream().map(RuleContext::getText).toList();
             }
         }
-        return new OverrideBodyDecl(bodyDecls, type, name, agents);
+        return new OverrideBodyDecl(bodyDecls, importDecls, type, name, agents);
     }
 
     @Override
@@ -563,6 +567,9 @@ public class MyAgentsVisitorImpl extends MyAgentsBaseVisitor<Object> {
         if (ctx.parenExpr() != null) {
             return new ParenthesizedExpr(visitExpr(ctx.parenExpr().expr()));
         }
+        if (ctx.arrayDeclarator() != null) {
+            return visitArrayDeclarator(ctx.arrayDeclarator());
+        }
         if (ctx.THIS() != null) {
             return new ThisExpr();
         }
@@ -582,6 +589,15 @@ public class MyAgentsVisitorImpl extends MyAgentsBaseVisitor<Object> {
             return new MemberRefExpr(new MemberContainerIdentifier(ctx.memRef().id(0).getText()), new AnyMemberIdentifier(ctx.memRef().id(1).getText()));
         }
         throw new IllegalArgumentException("Unknown primary expression type: " + ctx.getText());
+    }
+
+    @Override
+    public ArrayLiteralExpr visitArrayDeclarator(MyAgentsParser.ArrayDeclaratorContext ctx) {
+        List<Expr> elements = new LinkedList<>();
+        for (var expr : ctx.expr()) {
+            elements.add(visitExpr(expr));
+        }
+        return new ArrayLiteralExpr(elements);
     }
 
     public Expr visitAnyRef2(Expr target, MyAgentsParser.AnyRefContext ctx) {
@@ -654,13 +670,6 @@ public class MyAgentsVisitorImpl extends MyAgentsBaseVisitor<Object> {
                 exprs = visitExprList(ctx.classCreatorRest().arguments().exprList());
             }
             return new ObjectCreationExpr(new TypeIdentifier(name), exprs, body);
-        }
-        if (ctx.arrayCreatorRest() != null) {
-            var dimensions = new LinkedList<Expr>();
-            for (var dim : ctx.arrayCreatorRest().expr()) {
-                dimensions.add(visitExpr(dim));
-            }
-            return new ArrayCreationExpr(new AnyVariableIdentifier(name), dimensions);
         }
         throw new IllegalArgumentException("Unknown creator type: " + ctx.getText());
     }

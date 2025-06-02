@@ -1,0 +1,22 @@
+type Agent;
+name MiniLearner;
+
+import smile.data.DataFrame;
+import smile.data.Tuple;
+import smile.data.vector.DoubleVector;
+import smile.data.vector.BaseVector;
+import smile.data.formula.Formula;
+import smile.regression.OLS;
+
+init() {
+    X = [1.0, 2.0, 3.0, 4.0, 5.0];
+    Y = [2.0, 4.0, 6.0, 8.0, 10.0]; // Simple linear relationship y = 2 * x
+    df = DataFrame.of(
+        [DoubleVector.of("x", X), DoubleVector.of("y", Y)]
+    );
+    formula = Formula.lhs("y");
+    model = OLS.fit(formula, df); // Fit a linear regression model
+    prediction = model.predict([6.0]); // Predict for a new input
+    print("Predicted value for 6.0: " + prediction);
+    return true;
+}

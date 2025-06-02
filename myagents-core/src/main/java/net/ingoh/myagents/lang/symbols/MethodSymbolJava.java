@@ -32,23 +32,26 @@ public class MethodSymbolJava implements MethodSymbol {
     @Override
     public Object invoke(Interpreter interpreter, Object objOvr, Object... args) {
         try {
+            var cls = src.getDeclaringClass();
             if (obj != null) {
                 objOvr = obj;
             }
-            while (objOvr instanceof VariableSymbol) {
-                objOvr = ((VariableSymbol) objOvr).getValue(interpreter, interpreter.getExecutionSource().getSource());
-            }
-            Class<?> cls;
-            if (objOvr instanceof Class<?>) {
-                cls = (Class<?>) objOvr;
-            } else {
-                cls = objOvr.getClass();
+            if (objOvr != null) {
+                while (objOvr instanceof VariableSymbol) {
+                    objOvr = ((VariableSymbol) objOvr).getValue(interpreter, interpreter.getExecutionSource().getSource());
+                }
+                if (objOvr instanceof Class<?>) {
+                    cls = (Class<?>) objOvr;
+                } else {
+                    cls = objOvr.getClass();
+                }
             }
             var instance = (objOvr != null ? objOvr : interpreter.getExecutionSource().getSource());
             var method = MethodFinder.findCompatibleMethod(
                     cls,
                     getName(),
                     args != null ? Stream.of(args)
+                            .map(ClassHelper::unarray)
                             .map(Object::getClass)
                             .map(ClassHelper::unproxy)
                             .toArray(Class[]::new) : new Class[0]);

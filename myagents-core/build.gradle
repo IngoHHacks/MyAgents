@@ -32,6 +32,13 @@ dependencies {
     // ByteBuddy
     // Proxy generation
     implementation "net.bytebuddy:byte-buddy:$bytebuddyVersion"
+
+    // Deeplearning4J
+    implementation "org.deeplearning4j:deeplearning4j-core:$deeplearning4jVersion"
+    implementation "org.nd4j:nd4j-native-platform:$deeplearning4jVersion"
+
+    // Smile
+    implementation "com.github.haifengl:smile-core:$smileVersion"
 }
 
 generateGrammarSource {

@@ -41,4 +41,12 @@ public class ProgramFile {
     public ClassSymbol getBaseType() {
         return new ClassSymbolJava(baseType);
     }
+
+    public String fullName() {
+        if (namespace == null || namespace.id().isEmpty()) {
+            return name;
+        } else {
+            return namespace.id() + "." + name;
+        }
+    }
 }
