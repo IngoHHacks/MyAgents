@@ -16,7 +16,6 @@ targetY = -1;
 reproduceDelay = 1;
 
 tick(dt) {
-    text = id;
     // Go to a random position
     if (targetX == -1 || targetY == -1 || (distanceTo(targetX, targetY).length() < 10)) {
         targetX = rnd() * env.width;

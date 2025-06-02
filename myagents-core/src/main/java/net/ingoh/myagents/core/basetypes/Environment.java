@@ -1,5 +1,23 @@
 package net.ingoh.myagents.core.basetypes;
 
+import java.awt.BorderLayout;
+import java.awt.Color;
+import java.awt.Container;
+import java.awt.Dimension;
+import java.awt.Font;
+import java.awt.Graphics;
+import java.awt.GridLayout;
+import java.util.Hashtable;
+import java.util.LinkedList;
+import java.util.List;
+
+import javax.swing.JFrame;
+import javax.swing.JLabel;
+import javax.swing.JPanel;
+import javax.swing.JSlider;
+import javax.swing.SwingConstants;
+import javax.swing.Timer;
+
 import net.ingoh.myagents.core.actions.AddAgentAction;
 import net.ingoh.myagents.core.actions.RemoveAgentAction;
 import net.ingoh.myagents.core.actions.ScheduledEnvAction;
@@ -8,12 +26,6 @@ import net.ingoh.myagents.lang.execution.ExecutionSource;
 import net.ingoh.myagents.lang.execution.Interpreter;
 import net.ingoh.myagents.lang.il.TypeIdentifier;
 import net.ingoh.myagents.utils.ThreadSafeList;
-
-import javax.swing.*;
-import java.awt.*;
-import java.util.Hashtable;
-import java.util.LinkedList;
-import java.util.List;
 
 public class Environment extends MyAgentsClassBase {
     public double tickRate;
@@ -134,14 +146,30 @@ public class Environment extends MyAgentsClassBase {
         titleLabel.setFont(new Font("Arial", Font.BOLD, 24));
         titleLabel.setForeground(Color.BLACK);
         sidePanel.add(titleLabel);
-        var agentCountLabel = new JLabel("Agents: " + agents.size(), SwingConstants.CENTER);
+        var agentCountLabel = new JLabel("Agents: " + agents.size(), SwingConstants.CENTER) {
+            @Override
+            protected void paintComponent(Graphics g) {
+                setText("Agents: " + agents.size());
+                super.paintComponent(g);
+            }
+        };
         agentCountLabel.setFont(new Font("Arial", Font.PLAIN, 18));
         agentCountLabel.setForeground(Color.BLACK);
         sidePanel.add(agentCountLabel);
         var subCounts = new JPanel();
         subCounts.setLayout(new GridLayout(agentTypeMap.size(), 1));
         for (String agentType : agentTypeMap.keySet()) {
-            JLabel label = new JLabel("<html>" + agentType + ": " + agentTypeMap.get(agentType).size() + "</html>", SwingConstants.CENTER);
+            JLabel label = new JLabel("<html>" + agentType + ": " + agentTypeMap.get(agentType).size() + "</html>", SwingConstants.CENTER) {
+                @Override
+                protected void paintComponent(Graphics g) {
+                    if (!agentTypeMap.containsKey(agentType)) {
+                        setText("<html>" + agentType + ": 0</html>");
+                    } else {
+                        setText("<html>" + agentType + ": " + agentTypeMap.get(agentType).size() + "</html>");
+                    }
+                    super.paintComponent(g);
+                }
+            };
             label.setFont(new Font("Arial", Font.PLAIN, 16));
             label.setForeground(Color.BLACK);
             subCounts.add(label);
@@ -169,6 +197,7 @@ public class Environment extends MyAgentsClassBase {
         frame.setVisible(true);
         Timer timer = new Timer(1000 / 60, e -> {
             panel.repaint();
+            sidePanel.repaint();
         });
         timer.start();
         return true;

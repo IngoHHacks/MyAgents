@@ -3,7 +3,7 @@ name CarsEnv;
 tickRate 100;
 width 1000;
 height 200;
-wrap true;
+wrap true; // Cars wrap back to the start when they reach the end
 
 agents Car;
 
