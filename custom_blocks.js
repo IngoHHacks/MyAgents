@@ -27,10 +27,3 @@ Blockly.Blocks['Goto'] = {
         });
     }
 }
-
-Blockly.Java['Goto'] = function(block) {
-    var value_object = Blockly.Java.valueToCode(block, "VALUE", Blockly.Java.ORDER_ATOMIC);
-    var code = 'Agent.goto(' + value_object + ')\n';
-    Blockly.Java.definitions_['import_agents'] = AGENTS_IMPORT;
-    return code;
-}
